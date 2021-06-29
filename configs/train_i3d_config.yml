@@ -1,0 +1,35 @@
+TRAIN:
+  USE_CUDA: True
+  MAX_EPOCH: 200
+  DECAY_EPOCHS: 100
+  DECAY_RATE: 0.1
+  BATCH_SIZE: 16
+  LR: 0.001
+  DROPOUT: 0
+  GRAD_MAX_NORM: 1
+  USE_ADAMW: True
+#  SAVE_PATH: 'logs/test'
+  SAVE_PATH: 'logs/i3d_cha-pre_lr0.001_AdamW_Clip1'
+
+MODEL:
+  BACKBONE: 'i3d'
+  BACKBONE_DIM: '3D'
+#  PRETRAIN: 'pretrained_models/i3d_rgb_imagenet.pt'
+  PRETRAIN: 'pretrained_models/i3d_rgb_charades.pt'
+  DIM_EMBEDDING: 128
+  TRANSFORMER: False
+  ALIGNMENT: False
+  COSFACE: False
+  SAVE_EPOCHS: 1
+
+DATASET:
+  MODE: 'train'
+  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
+  NUM_CLASS: 45
+  NUM_SAMPLE: 800
+  NUM_CLIP: 16
+  LEN_CLIP: 1
+
+
+
+

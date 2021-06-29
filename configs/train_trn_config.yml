@@ -1,0 +1,37 @@
+TRAIN:
+  USE_CUDA: True
+  MAX_EPOCH: 200
+  DECAY_EPOCHS: 100
+  DECAY_RATE: 0.1
+  BATCH_SIZE: 16
+  LR: 0.001
+  DROPOUT: 0
+#  GRAD_MAX_NORM: 1
+#  USE_ADAMW: True
+#  SAVE_PATH: 'logs/test'
+  SAVE_PATH: 'logs/trn-res50_img-pre_lr0.001'
+
+MODEL:
+  BACKBONE: 'trn'
+  BACKBONE_DIM: '2D'
+#  BASE_MODEL: 'BNInception'
+#  PRETRAIN: 'imagenet'
+  BASE_MODEL: 'resnet50'
+  PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
+  DIM_EMBEDDING: 128
+#  TRANSFORMER: True
+#  ALIGNMENT: True
+#  COSFACE: True
+  SAVE_EPOCHS: 1
+
+DATASET:
+  MODE: 'train'
+  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
+  NUM_CLASS: 45
+  NUM_SAMPLE: 800
+  NUM_CLIP: 16
+  LEN_CLIP: 1
+
+
+
+

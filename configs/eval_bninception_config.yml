@@ -1,0 +1,20 @@
+TRAIN:
+  BATCH_SIZE: 16
+
+MODEL:
+  BACKBONE: 'bninception'
+  BACKBONE_DIM: '2D'
+  TRANSFORMER: True
+#  ALIGNMENT: True
+
+DATASET:
+  MODE: 'test'
+  TXT_PATH: '/p300/dataset/ActionVerification/test_new.txt'
+  NUM_CLASS: 45
+  NUM_SAMPLE: 300
+  NUM_CLIP: 16
+  LEN_CLIP: 1
+  AUGMENT: False
+
+
+
