@@ -40,10 +40,7 @@ def train():
 
 
     # pdb.set_trace()
-    # Mulitple gpu
-    if torch.cuda.device_count() > 1 and torch.cuda.is_available():
-        logger.info("Let's use %d GPUs" % torch.cuda.device_count())
-        model = torch.nn.DataParallel(model)
+
 
     logger.info("Model have {} paramerters in total".format(sum(x.numel() for x in model.parameters())))
     if cfg.TRAIN.USE_ADAMW:
@@ -64,8 +61,10 @@ def train():
         start_epoch = checkpoint['epoch']
         logger.info("-> Loaded checkpoint %s (epoch: %d)" % (args.load_path, start_epoch))
 
-
-
+    # Mulitple gpu
+    if torch.cuda.device_count() > 1 and torch.cuda.is_available():
+        logger.info("Let's use %d GPUs" % torch.cuda.device_count())
+        model = torch.nn.DataParallel(model)
 
     model.train()
     start_time = time.time()

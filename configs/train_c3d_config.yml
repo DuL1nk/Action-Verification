@@ -9,16 +9,16 @@ TRAIN:
   GRAD_MAX_NORM: 1
   USE_ADAMW: True
 #  SAVE_PATH: 'logs/test'
-  SAVE_PATH: 'logs/c3d_sports1m-pre_lr0.0001_AdamW_Clip1'
+  SAVE_PATH: 'logs/c3d_sports1m-pre_lr0.0001_bs16'
 
 MODEL:
   BACKBONE: 'c3d'
   BACKBONE_DIM: '3D'
   PRETRAIN: 'pretrained_models/c3d_sports1m.pickle'
   DIM_EMBEDDING: 128
-  TRANSFORMER: False
-  ALIGNMENT: False
-  COSFACE: False
+#  TRANSFORMER: True
+#  ALIGNMENT: True
+#  COSFACE: True
   SAVE_EPOCHS: 1
 
 DATASET:

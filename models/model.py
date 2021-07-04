@@ -8,7 +8,6 @@ import logging
 from utils.builder import builder, TRUNCATE_DIM
 from models.tsn.TRNmodule import return_TRN
 
-
 logger = logging.getLogger('ActionVerification')
 
 
@@ -109,9 +108,10 @@ class CAT(nn.Module):
                 x = x.reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])    # [bs, num_clip, dim_feature]
 
                 # Different aggregate method in temporal dim
-                if self.backbone_model == 'tsn':
+                if self.backbone_model == 'tsn' or self.backbone_model == 'tsm':
                     x = torch.mean(x, dim=1)
                 elif self.backbone_model == 'trn':
+                    # pdb.set_trace()
                     x = self.trn_mix(x)
                 else:
                     x = self.temporal_mix_conv(x)

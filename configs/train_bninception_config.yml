@@ -12,11 +12,11 @@ TRAIN:
 MODEL:
   BACKBONE: 'bninception'
   BACKBONE_DIM: '2D'
-#  PRETRAIN: 'imagenet'
-  PRETRAIN: 'logs/bninception_img-pre_lr0.001/save_models/epoch_10.tar'
+  PRETRAIN: 'imagenet'
+#  PRETRAIN: 'logs/bninception_img-pre_lr0.001/save_models/epoch_10.tar'
   DIM_EMBEDDING: 128
-  TRANSFORMER: True
-  ALIGNMENT: True
+#  TRANSFORMER: True
+#  ALIGNMENT: True
 #  COSFACE: True
   SAVE_EPOCHS: 1
 

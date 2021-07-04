@@ -1,5 +1,6 @@
 TRAIN:
   BATCH_SIZE: 16
+  DROPOUT: 0
 
 MODEL:
   BACKBONE: 'tsn'
@@ -16,6 +17,7 @@ DATASET:
   NUM_CLIP: 16
   LEN_CLIP: 1
   AUGMENT: False
+  SHUFFLE: True
 
 
 

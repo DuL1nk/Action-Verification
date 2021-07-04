@@ -2,12 +2,13 @@ import torch.nn as nn
 import logging
 
 from models.tsn.models import TSN
-from models.tsm.ops.models import TSN as TSM
+from models.tsm.models import TSN as TSM
 from models.resnet.resnet import *
 from models.vit.vit_pytorch import ViT
 from models.c3d.c3d import C3D
 from models.i3d.i3d import InceptionI3d as I3D
 from models.vgg.vgg import vgg16
+import pdb
 
 # Dims for different backbone model when truncated
 TRUNCATE_DIM = {'resnet18': 512,
@@ -15,6 +16,7 @@ TRUNCATE_DIM = {'resnet18': 512,
                 'resnet50': 2048,
                 'resnet101': 2048,
                 'bninception': 1024,
+                'BNInception': 1024,
                 'vgg': 512,
                 'tsn': 1024,
                 'tsm': 1024,
@@ -71,8 +73,9 @@ class builder:
         elif self.backbone_model == 'vgg':
             backbone = vgg16(self.pretrain)
         elif self.backbone_model == 'bninception':
-            from models.tsn import tf_model_zoo
-            backbone = getattr(tf_model_zoo, 'BNInception')(self.pretrain)
+            pdb.set_trace()
+            from models.tsn import model_zoo
+            backbone = getattr(model_zoo, 'BNInception')(self.pretrain)
 
         elif self.backbone_model == 'c3d':
             backbone = C3D(pretrain=self.pretrain,
@@ -88,7 +91,7 @@ class builder:
                            base_model=self.base_model,
                            consensus_type='avg',
                            dropout=self.dropout,
-                           partial_bn=True,
+                           partial_bn=False,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tsm':
             backbone = TSM(num_segments=self.num_clip,
@@ -96,7 +99,7 @@ class builder:
                            base_model=self.base_model,
                            consensus_type='avg',
                            dropout=self.dropout,
-                           partial_bn=True,
+                           partial_bn=False,
                            pretrain=self.pretrain,
                            is_shift=True, shift_div=2, shift_place='blockres',
                            fc_lr5=True,
@@ -108,7 +111,7 @@ class builder:
                            base_model=self.base_model,
                            consensus_type='avg',
                            dropout=self.dropout,
-                           partial_bn=True,
+                           partial_bn=False,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tea':
             pass

@@ -3,14 +3,14 @@ TRAIN:
   MAX_EPOCH: 200
   DECAY_EPOCHS: 100
   DECAY_RATE: 0.1
-  BATCH_SIZE: 8
+  BATCH_SIZE: 16
   LR: 0.001
   DROPOUT: 0
 #  GRAD_MAX_NORM: 10
 #  USE_ADAMW: True
 #  FIX_VIT_PROJECTION: True
 #  SAVE_PATH: 'logs/test'
-  SAVE_PATH: 'logs/resnet50_img-pre_lr0.001'
+  SAVE_PATH: 'logs/resnet50+vit_img-pre_lr0.001_bs16'
 
 MODEL:
   BACKBONE: 'resnet50'
@@ -18,7 +18,7 @@ MODEL:
   PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
 #  PRETRAIN_PATH: 'logs/resnet18_lr0.001_pretrain/save_models/30_checkpoint.tar'
   DIM_EMBEDDING: 128
-#  TRANSFORMER: True
+  TRANSFORMER: True
 #  ALIGNMENT: True
 #  COSFACE: True
   SAVE_EPOCHS: 1
