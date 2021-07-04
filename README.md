@@ -19,17 +19,17 @@ The detailed setup of model, training, dataset are configured in [config file], 
 
 For training:
 
-`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python train.py --config [train config file]`
+`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python train.py --config [config file]`
 
 For testing:
 
 *Mode 1*: Evaluate all models in [root_path/saved_models] and save log file to [root_path/logs].
 
-`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python eval.py --config [eval config file] --root_path [root_path]`
+`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python eval.py --config [config file] --root_path [root_path]`
 
 *Mode 2*: Evaluate one model in [model_path] and save log file to [temp_log] if not especially speicify.
 
-`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python eval.py --config [eval config file] --model_path [model_path]`
+`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python eval.py --config [config file] --model_path [model_path]`
 
 
 
