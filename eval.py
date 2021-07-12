@@ -131,7 +131,7 @@ def eval():
 
     start_time = time.time()
     if os.path.isdir(model_path):
-        logger.info('To evaluate %d models in %s' % (len(os.listdir(model_path)), model_path))
+        logger.info('To evaluate %d models in %s' % (len(os.listdir(model_path)) - args.start_epoch + 1, model_path))
 
         best_auc = 0
         best_model_path = ''
@@ -148,6 +148,10 @@ def eval():
         model_paths.sort(key=lambda x: int(x[6:-4]))
 
         for path in model_paths:
+
+            if int(path[6:-4]) < args.start_epoch:
+                continue
+
             checkpoint = torch.load(os.path.join(model_path, path))
             model.load_state_dict(checkpoint['model_state_dict'], strict=False)
             auc_value = compute_auc(model)
@@ -194,6 +198,7 @@ def parse_args():
     parser.add_argument('--root_path', default=None, help='path to load models and save log [default: None]')
     parser.add_argument('--model_path', default=None, help='path to load one model [default: None]')
     parser.add_argument('--log_name', default='eval_log', help='log name')
+    parser.add_argument('--start_epoch', default=1, type=int, help='index of the first evaluated epoch while evaluating epochs [default: 1]')
 
 
     args = parser.parse_args()
