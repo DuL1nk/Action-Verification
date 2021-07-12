@@ -4,14 +4,16 @@
 This is the *internal beta* implementation of our Action-Verificaiton project.
 
 ## Install
-`$ TBD`
-
 Our environment:
 > Ubuntu 18.04.5 LTS
 >
 > CUDA 10.2.89
 >
 > Pytorch 1.7.1
+
+To install other packages: 
+
+`$ pip install -r requirements.txt`
 
 ## Usage
 
