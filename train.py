@@ -36,7 +36,8 @@ def train():
                 use_ViT=cfg.MODEL.TRANSFORMER,
                 use_SeqAlign=cfg.MODEL.ALIGNMENT,
                 use_CosFace=cfg.MODEL.COSFACE,
-                fix_ViT_projection=cfg.TRAIN.FIX_VIT_PROJECTION).to(device)
+                fix_ViT_projection=cfg.TRAIN.FIX_VIT_PROJECTION,
+                partial_bn=cfg.TRAIN.PARTIAL_BN).to(device)
 
 
     # pdb.set_trace()
@@ -50,8 +51,6 @@ def train():
 
     start_epoch = 0
 
-    # model.backbone.layer1[0].conv1.weight
-    # model.vit.transformer.layers[0][0].fn.fn.to_qkv.weight
 
     # Load checkpoint
     if args.load_path and os.path.isfile(args.load_path):

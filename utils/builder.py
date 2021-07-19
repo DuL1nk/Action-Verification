@@ -3,6 +3,7 @@ import logging
 
 from models.tsn.models import TSN
 from models.tsm.models import TSN as TSM
+from models.trn.models import TSN as TRN
 from models.resnet.resnet import *
 from models.vit.vit_pytorch import ViT
 from models.c3d.c3d import C3D
@@ -37,7 +38,6 @@ class builder:
                  pretrain,
                  dropout,
                  dim_embedding,
-                 truncate,
                  use_ViT,
                  use_SeqAlign,
                  fix_ViT_projection):
@@ -49,7 +49,6 @@ class builder:
         self.pretrain = pretrain
         self.dropout = dropout
         self.dim_embedding = dim_embedding
-        self.truncate = truncate
         self.use_ViT = use_ViT
         self.use_SeqAlign = use_SeqAlign
         self.fix_ViT_projection = fix_ViT_projection
@@ -57,25 +56,25 @@ class builder:
     def build_backbone(self):
         backbone = None
 
-        if self.backbone_model in ['resnet18', 'resnet34', 'resnet50', 'resnet101']:
-            depth = int(self.backbone_model[6:])
+        if self.backbone_model == 'cat':
 
-            if depth == 18:
-                backbone = resnet18(pretrain=self.pretrain, truncate=self.truncate)
-            elif depth == 34:
-                backbone = resnet34(pretrain=self.pretrain, truncate=self.truncate)
-            elif depth == 50:
-                backbone = resnet50(pretrain=self.pretrain, truncate=self.truncate)
-            elif depth == 101:
-                backbone = resnet101(pretrain=self.pretrain, truncate=self.truncate)
+            if self.base_model in ['resnet18', 'resnet34', 'resnet50', 'resnet101']:
+                depth = int(self.base_model[6:])
 
-            backbone.fc = nn.Linear(backbone.fc.in_features, self.dim_embedding)
-        elif self.backbone_model == 'vgg':
-            backbone = vgg16(self.pretrain)
-        elif self.backbone_model == 'bninception':
-            pdb.set_trace()
-            from models.tsn import model_zoo
-            backbone = getattr(model_zoo, 'BNInception')(self.pretrain)
+                if depth == 18:
+                    backbone = resnet18(pretrain=self.pretrain, truncate=True)
+                elif depth == 34:
+                    backbone = resnet34(pretrain=self.pretrain, truncate=True)
+                elif depth == 50:
+                    backbone = resnet50(pretrain=self.pretrain, truncate=True)
+                elif depth == 101:
+                    backbone = resnet101(pretrain=self.pretrain, truncate=True)
+
+                # backbone.fc = nn.Linear(backbone.fc.in_features, self.dim_embedding)
+            elif self.base_model == 'vgg':
+                backbone = vgg16(self.pretrain)
+            elif self.base_model == 'bninception':
+                pass
 
         elif self.backbone_model == 'c3d':
             backbone = C3D(pretrain=self.pretrain,
@@ -86,31 +85,31 @@ class builder:
                            dropout=self.dropout,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tsn':
-            backbone = TSN(num_segments=self.num_clip,
+            backbone = TSN(num_class=self.dim_embedding,
+                           num_segments=self.num_clip,
                            modality='RGB',
                            base_model=self.base_model,
                            consensus_type='avg',
-                           dropout=self.dropout,
-                           partial_bn=False,
+                           partial_bn=True,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tsm':
-            backbone = TSM(num_segments=self.num_clip,
+            backbone = TSM(num_class=self.dim_embedding,
+                           num_segments=self.num_clip,
                            modality='RGB',
                            base_model=self.base_model,
                            consensus_type='avg',
-                           dropout=self.dropout,
-                           partial_bn=False,
+                           partial_bn=True,
                            pretrain=self.pretrain,
                            is_shift=True, shift_div=2, shift_place='blockres',
                            fc_lr5=True,
                            temporal_pool=False,
                            non_local=False)
         elif self.backbone_model == 'trn':
-            backbone = TSN(num_segments=self.num_clip,
+            backbone = TRN(num_class=self.dim_embedding,
+                           num_segments=self.num_clip,
                            modality='RGB',
                            base_model=self.base_model,
-                           consensus_type='avg',
-                           dropout=self.dropout,
+                           consensus_type='TRN',
                            partial_bn=False,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tea':
@@ -134,7 +133,7 @@ class builder:
             depth=6,
             heads=8,
             mlp_dim=2048,
-            channels=TRUNCATE_DIM[self.backbone_model],
+            channels=TRUNCATE_DIM[self.base_model],
             dropout=self.dropout,
             emb_dropout=self.dropout,
             fix_embedding=self.fix_ViT_projection
@@ -147,7 +146,7 @@ class builder:
         return nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            Reshape(-1, self.num_clip, TRUNCATE_DIM[self.backbone_model])
+            Reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])
         )
 
 

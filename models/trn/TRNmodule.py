@@ -17,12 +17,12 @@ class RelationModule(torch.nn.Module):
         self.classifier = self.fc_fusion()
     def fc_fusion(self):
         # naive concatenate
-        num_bottleneck = 1024
+        num_bottleneck = 512
         classifier = nn.Sequential(
                 nn.ReLU(),
                 nn.Linear(self.num_frames * self.img_feature_dim, num_bottleneck),
                 nn.ReLU(),
-                # nn.Linear(num_bottleneck,self.num_class),
+                nn.Linear(num_bottleneck,self.num_class),
                 )
         return classifier
     def forward(self, input):
@@ -48,7 +48,7 @@ class RelationModuleMultiScale(torch.nn.Module):
 
         self.num_class = num_class
         self.num_frames = num_frames
-        num_bottleneck = 1024
+        num_bottleneck = 256
         self.fc_fusion_scales = nn.ModuleList() # high-tech modulelist
         for i in range(len(self.scales)):
             scale = self.scales[i]
@@ -56,7 +56,7 @@ class RelationModuleMultiScale(torch.nn.Module):
                         nn.ReLU(),
                         nn.Linear(scale * self.img_feature_dim, num_bottleneck),
                         nn.ReLU(),
-                        # nn.Linear(num_bottleneck, self.num_class),
+                        nn.Linear(num_bottleneck, self.num_class),
                         )
 
             self.fc_fusion_scales += [fc_fusion]
