@@ -90,7 +90,6 @@ class builder:
                            modality='RGB',
                            base_model=self.base_model,
                            consensus_type='avg',
-                           partial_bn=True,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tsm':
             backbone = TSM(num_class=self.dim_embedding,
@@ -98,7 +97,6 @@ class builder:
                            modality='RGB',
                            base_model=self.base_model,
                            consensus_type='avg',
-                           partial_bn=True,
                            pretrain=self.pretrain,
                            is_shift=True, shift_div=2, shift_place='blockres',
                            fc_lr5=True,
@@ -110,7 +108,6 @@ class builder:
                            modality='RGB',
                            base_model=self.base_model,
                            consensus_type='TRN',
-                           partial_bn=False,
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tea':
             pass
