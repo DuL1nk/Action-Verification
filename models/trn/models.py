@@ -12,7 +12,7 @@ class TSN(nn.Module):
     def __init__(self, num_class, num_segments, modality,
                  base_model='resnet101', new_length=None,
                  consensus_type='avg', img_feature_dim=256,
-                 partial_bn=True, pretrain=None):
+                 pretrain=None):
         super(TSN, self).__init__()
         self.num_class = num_class
         self.modality = modality
@@ -46,9 +46,6 @@ class TSN(nn.Module):
         else:
             self.consensus = ConsensusModule(consensus_type)
 
-        self._enable_pbn = partial_bn
-        if partial_bn:
-            self.partialBN(True)
 
     def _prepare_base_model(self, base_model):
 
@@ -60,27 +57,6 @@ class TSN(nn.Module):
         else:
             raise ValueError('Unknown base model: {}'.format(base_model))
 
-    def train(self, mode=True):
-        """
-        Override the default train() to freeze the BN parameters
-        :return:
-        """
-        super(TSN, self).train(mode)
-        count = 0
-        if self._enable_pbn:
-            print("Freezing BatchNorm2D except the first one.")
-            for m in self.base_model.modules():
-                if isinstance(m, nn.BatchNorm2d):
-                    count += 1
-                    if count >= (2 if self._enable_pbn else 1):
-                        m.eval()
-
-                        # shutdown update in frozen mode
-                        m.weight.requires_grad = False
-                        m.bias.requires_grad = False
-
-    def partialBN(self, enable):
-        self._enable_pbn = enable
 
 
 

@@ -106,7 +106,7 @@ class CAT(nn.Module):
 
     def forward(self, x, labels=None, embed=False):
 
-        pdb.set_trace()
+        # pdb.set_trace()
         x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
         # return x
 
