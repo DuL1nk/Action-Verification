@@ -152,8 +152,9 @@ def eval():
             if int(path[6:-4]) < args.start_epoch:
                 continue
 
+            # pdb.set_trace()
             checkpoint = torch.load(os.path.join(model_path, path))
-            model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+            model.load_state_dict(checkpoint['model_state_dict'], strict=True)
             auc_value = compute_auc(model)
             logger.info("Model is %s, AUC is %.4f" % (os.path.join(model_path, path), auc_value))
 
