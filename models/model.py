@@ -121,7 +121,7 @@ class CAT(nn.Module):
                 _, c, h, w = x.size()
                 x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, 512, 6, t*10]
                 x = self.vit(x)         # [bs, 1024]
-                x = self.vit_fc(x)      # [bs, 128]
+                x = self.vit_fc(x)      # [bs, dim_embedding]
             else:
                 x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
                 x = x.flatten(1)        # [bs * num_clip, 512]

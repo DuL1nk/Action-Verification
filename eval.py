@@ -28,7 +28,7 @@ def compute_auc(model, dist='L2'):
         model = torch.nn.DataParallel(model)
 
 
-    model = model.to(device)
+    # model = model.to(device)
     auc_value = 0
 
     # auc metric
