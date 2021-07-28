@@ -18,6 +18,7 @@ from models.model import CAT
 
 import numpy as np
 import time
+import random
 
 
 
@@ -69,8 +70,10 @@ def train():
     start_time = time.time()
     # Start training
     for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
+        loss = 0
         loss_per_epoch = 0
         num_true_pred = 0
+        indices = []
 
         # for name, param in model.named_parameters():
         #     print('层:', name, param.size())
@@ -78,10 +81,10 @@ def train():
         #     print('权值', param)
 
         time_spot0 = time.time()
-
         for iter, sample in enumerate(train_loader):
 
             # pdb.set_trace()
+
             time_spot1 = time.time()
             # logger.info("Iter %d: Loading data costs %d" % (iter, time_spot1 - time_spot0))
 
@@ -105,7 +108,7 @@ def train():
 
             loss_seq = compute_seq_loss(seq_features1, seq_features2)
             loss = loss_cls1 + loss_cls2 + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
-            loss_per_epoch += loss
+            loss_per_epoch += loss.item()
 
             # pdb.set_trace()
 
@@ -125,8 +128,7 @@ def train():
         # Statistics per epoch
         loss_per_epoch /= (iter + 1)
         accuracy = num_true_pred / (cfg.DATASET.NUM_SAMPLE * 2)
-        logger.info('Epoch [{}/{}], Accuracy: {:.4f}, Loss: {:.4f}'
-              .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch.item()))
+        logger.info('Epoch [{}/{}], Accuracy: {:.4f}, Loss: {:.4f}'.format(epoch + 1, cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch))
 
 
         # Learning rate decay
@@ -189,7 +191,16 @@ if __name__ == "__main__":
         cfg.merge_from_file(args.config)
 
 
-    torch.manual_seed(cfg.TRAIN.SEED)
+    def setup_seed(seed):
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+
+
+    setup_seed(cfg.TRAIN.SEED)
+    # torch.manual_seed(cfg.TRAIN.SEED)
     # torch.cuda.manual_seed_all(cfg.TRAIN.SEED)
     use_cuda = cfg.TRAIN.USE_CUDA and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
