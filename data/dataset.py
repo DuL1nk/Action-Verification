@@ -1,4 +1,6 @@
 import os
+import random
+
 import torch
 from torch.utils import data
 from PIL import Image
@@ -7,6 +9,7 @@ import pdb
 import time
 import numpy as np
 import logging
+from torch.utils.data.sampler import Sampler
 
 from torchvision import transforms as tf
 
@@ -70,7 +73,6 @@ class ActionVerificationDataset(data.Dataset):
 
 
 
-
     def __getitem__(self, index):
         # print(index)
 
@@ -82,12 +84,13 @@ class ActionVerificationDataset(data.Dataset):
         #         index = np.random.randint(0, len(self.data_list))
         #     self.indices.append(index)
 
-        if self.mode == 'train':
-            np.random.seed(int(time.time()) + index)
+        # if self.mode == 'train':
+            # np.random.seed(int(time.time()) + index)
             # np.random.seed(index)
-            # print('index w as: ', index)
-            index = self.indices.pop(np.random.randint(0, len(self.indices)))
+            # print('index was: ', index)
+            # index = self.indices.pop(np.random.randint(0, len(self.indices)))
             # print('index is: ', index)
+            # print(len(self.indices))
 
         # Strategy2: Map the index to the larger range
         # index = int(index * (len(self.data_list) / self.num_sample))
@@ -223,19 +226,47 @@ class ActionVerificationDataset(data.Dataset):
         return sampled_frames
 
 
+class TestSampler(Sampler):
+    def __init__(self, dataset, txt_path, shuffle=False):
+        self.dataset = dataset
+        self.data_list = [line.strip() for line in open(txt_path, 'r').readlines()]
+        self.shuffle = shuffle
+
+    def __iter__(self):
+
+        tmp = random.sample(range(len(self.data_list)), len(self.dataset))
+        if not self.shuffle:
+            tmp.sort()
+
+        # print(tmp)
+        return iter(tmp)
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+
 
 def load_dataset(cfg):
 
     ImageNet_normalization = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
-    loaders = data.DataLoader(
-        ActionVerificationDataset(mode=cfg.DATASET.MODE,
+
+    dataset = ActionVerificationDataset(mode=cfg.DATASET.MODE,
                                   txt_path=cfg.DATASET.TXT_PATH,
                                   normalization=ImageNet_normalization,
                                   num_clip=cfg.DATASET.NUM_CLIP,
                                   len_clip=cfg.DATASET.LEN_CLIP,
                                   augment=cfg.DATASET.AUGMENT,
-                                  num_sample=cfg.DATASET.NUM_SAMPLE),
-        batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=cfg.DATASET.SHUFFLE, drop_last=True, num_workers=cfg.DATASET.NUM_WORKERS)
+                                  num_sample=cfg.DATASET.NUM_SAMPLE)
+
+    sampler = TestSampler(dataset, cfg.DATASET.TXT_PATH, cfg.DATASET.SHUFFLE)
+
+    loaders = data.DataLoader(dataset=dataset,
+                              batch_size=cfg.TRAIN.BATCH_SIZE,
+                              shuffle=False,
+                              sampler=sampler,
+                              drop_last=True,
+                              num_workers=cfg.DATASET.NUM_WORKERS)
 
     return loaders
