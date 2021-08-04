@@ -10,8 +10,9 @@ TRAIN:
   SAVE_PATH: 'logs/vgg+cos+vit+sa_img-pre_lr0.0001'
 
 MODEL:
-  BACKBONE: 'vgg'
+  BACKBONE: 'cat'
   BACKBONE_DIM: '2D'
+  BASE_MODEL: 'vgg'
   PRETRAIN: 'pretrained_models/vgg16-ImageNet.pth'
   DIM_EMBEDDING: 128
   TRANSFORMER: True

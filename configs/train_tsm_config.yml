@@ -3,14 +3,17 @@ TRAIN:
   MAX_EPOCH: 200
   DECAY_EPOCHS: 100
   DECAY_RATE: 0.1
-  BATCH_SIZE: 2
+  BATCH_SIZE: 16
   LR: 0.001
   DROPOUT: 0
+  PARTIAL_BN: False
 #  GRAD_MAX_NORM: 1
 #  USE_ADAMW: True
 #  FIX_VIT_PROJECTION: True
-  SAVE_PATH: 'logs/test'
-#  SAVE_PATH: 'logs/tsm-res_img-pre_lr0.001_bs16'
+#  SAVE_PATH: 'logs/test'
+  SAVE_PATH: 'logs/tsm-res_img-pre_lr0.001'
+#  SAVE_PATH: 'coin_logs/tsm-res_img-pre_lr0.001'
+
 
 MODEL:
   BACKBONE: 'tsm'
@@ -19,7 +22,7 @@ MODEL:
 #  PRETRAIN: 'imagenet'
   BASE_MODEL: 'resnet50'
   PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
-  DIM_EMBEDDING : 128
+  DIM_EMBEDDING: 128
 #  TRANSFORMER: True
 #  ALIGNMENT: True
 #  COSFACE: True
@@ -30,6 +33,9 @@ DATASET:
   TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
   NUM_CLASS: 45
   NUM_SAMPLE: 800
+#  TXT_PATH: '/p300/dataset/COIN/train.txt'
+#  NUM_CLASS: 180
+#  NUM_SAMPLE: 1600
   NUM_CLIP: 16
   LEN_CLIP: 1
 

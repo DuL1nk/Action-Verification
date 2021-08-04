@@ -9,13 +9,13 @@ TRAIN:
 #  GRAD_MAX_NORM: 1
 #  USE_ADAMW: True
 #  SAVE_PATH: 'logs/test'
-  SAVE_PATH: 'logs/i3d_img-pre_lr0.001_bs16'
+  SAVE_PATH: 'logs/i3d_cha-pre_lr0.001_bs16'
 
 MODEL:
   BACKBONE: 'i3d'
   BACKBONE_DIM: '3D'
-  PRETRAIN: 'pretrained_models/i3d_rgb_imagenet.pt'
-#  PRETRAIN: 'pretrained_models/i3d_rgb_charades.pt'
+#  PRETRAIN: 'pretrained_models/i3d_rgb_imagenet.pt'
+  PRETRAIN: 'pretrained_models/i3d_rgb_charades.pt'
   DIM_EMBEDDING: 128
 #  TRANSFORMER: True
 #  ALIGNMENT: True

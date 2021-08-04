@@ -20,6 +20,7 @@ _C.TRAIN.SAVE_PATH = None
 _C.TRAIN.GRAD_MAX_NORM = None
 _C.TRAIN.USE_ADAMW = False
 _C.TRAIN.FIX_VIT_PROJECTION = False
+_C.TRAIN.PARTIAL_BN = False     # Freeze BatchNorm2D except the first layer in backbone
 
 # Model configuration
 _C.MODEL = CN()

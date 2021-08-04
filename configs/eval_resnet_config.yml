@@ -1,18 +1,20 @@
 TRAIN:
-  BATCH_SIZE: 16
+  BATCH_SIZE: 32
   DROPOUT: 0
 
 MODEL:
-  BACKBONE: 'resnet50'
+  BACKBONE: 'cat'
   BACKBONE_DIM: '2D'
+  BASE_MODEL: 'resnet50'
   TRANSFORMER: True
 #  ALIGNMENT: True
 
 DATASET:
   MODE: 'test'
-  TXT_PATH: '/p300/dataset/ActionVerification/test.txt'
-  NUM_CLASS: 45
-  NUM_SAMPLE: 300
+#  TXT_PATH: '/p300/dataset/ActionVerification/test.txt'
+#  NUM_CLASS: 45
+  TXT_PATH: '/p300/dataset/COIN/test.txt'
+  NUM_CLASS: 180
   NUM_CLIP: 16
   LEN_CLIP: 1
   AUGMENT: False

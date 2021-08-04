@@ -6,30 +6,39 @@ TRAIN:
   BATCH_SIZE: 16
   LR: 0.001
   DROPOUT: 0
+  PARTIAL_BN: False
+  SEED: 1234
 #  GRAD_MAX_NORM: 10
 #  USE_ADAMW: True
 #  FIX_VIT_PROJECTION: True
 #  SAVE_PATH: 'logs/test'
-  SAVE_PATH: 'logs/resnet50+vit_img-pre_lr0.001_bs16'
+#  SAVE_PATH: 'logs/resnet50+vit+sa_img-pre_lr0.001_new-sampler'
+  SAVE_PATH: 'coin_logs/resnet101_img-pre_lr0.001'
+
 
 MODEL:
-  BACKBONE: 'resnet50'
+  BACKBONE: 'cat'
   BACKBONE_DIM: '2D'
-  PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
+  BASE_MODEL: 'resnet101'
+  PRETRAIN: 'pretrained_models/resnet101-ImageNet.pth'
 #  PRETRAIN_PATH: 'logs/resnet18_lr0.001_pretrain/save_models/30_checkpoint.tar'
   DIM_EMBEDDING: 128
-  TRANSFORMER: True
+#  TRANSFORMER: True
 #  ALIGNMENT: True
 #  COSFACE: True
   SAVE_EPOCHS: 1
 
 DATASET:
   MODE: 'train'
-  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
-  NUM_CLASS: 45
-  NUM_SAMPLE: 800
+#  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
+#  NUM_CLASS: 45
+#  NUM_SAMPLE: 800
+  TXT_PATH: '/p300/dataset/COIN/train.txt'
+  NUM_CLASS: 180
+  NUM_SAMPLE: 1600
   NUM_CLIP: 16
   LEN_CLIP: 1
+  SHUFFLE: True
 
 
 
