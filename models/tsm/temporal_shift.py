@@ -166,7 +166,7 @@ def make_temporal_shift(net, n_segment, n_div=8, place='blockres', temporal_pool
             for i, b in enumerate(blocks):
                 if i % n_round == 0:
                     # pdb.set_trace()
-                    blocks[i].convq1 = TemporalShift(b.conv1, n_segment=this_segment, n_div=n_div)
+                    blocks[i].conv1 = TemporalShift(b.conv1, n_segment=this_segment, n_div=n_div)
             return nn.Sequential(*blocks)
 
         # pdb.set_trace()
