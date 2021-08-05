@@ -8,6 +8,7 @@ from utils.logger import setup_logger
 from utils.input import frames_preprocess
 from utils.visualization import vis_embedding
 from models.model import CAT
+from train import setup_seed
 
 from data.dataset import load_dataset
 
@@ -212,7 +213,7 @@ if __name__ == "__main__":
         cfg.merge_from_file(args.config)
 
 
-    torch.manual_seed(cfg.TRAIN.SEED)
+    setup_seed(cfg.TRAIN.SEED)
     use_cuda = cfg.TRAIN.USE_CUDA and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
