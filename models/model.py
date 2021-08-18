@@ -26,7 +26,8 @@ class CAT(nn.Module):
                  use_SeqAlign=False,
                  use_CosFace=False,
                  fix_ViT_projection=False,
-                 partial_bn=False):
+                 partial_bn=False,
+                 freeze_backbone=False):
         super(CAT, self).__init__()
         assert backbone_model, logger.info('CAT must have a backbone model, but get None')
 
@@ -40,6 +41,7 @@ class CAT(nn.Module):
         self.use_SeqAlign = use_SeqAlign
         self.use_CosFace = use_CosFace
         self.enable_pbn = partial_bn
+        self.freeze_backbone = freeze_backbone
 
         if base_model == None:
             self.base_model = backbone_model
@@ -60,9 +62,7 @@ class CAT(nn.Module):
 
 
         self.backbone = model_builder.build_backbone()
-        if use_ViT:
-            self.vit = model_builder.build_vit()
-            self.vit_fc = nn.Linear(1024, dim_embedding)
+
         if use_SeqAlign:
             self.seq_features_extractor = model_builder.build_seq_features_extractor()
 
@@ -70,7 +70,8 @@ class CAT(nn.Module):
             if use_SeqAlign:
                 self.seq_features_extractor = model_builder.build_seq_features_extractor()
             if use_ViT:
-                self.vit = model_builder.build_vit()
+                self.vit1, self.vit2 = model_builder.build_2vit()
+                # self.vit = model_builder.build_vit()
                 self.vit_fc = nn.Linear(1024, dim_embedding)
             else:
                 self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -100,6 +101,11 @@ class CAT(nn.Module):
                         m.weight.requires_grad = False
                         m.bias.requires_grad = False
 
+        if self.freeze_backbone:
+            print('Freezeing backbone.')
+            for param in self.backbone.parameters():
+                param.requires_grad = False
+
 
 
 
@@ -107,7 +113,7 @@ class CAT(nn.Module):
     def forward(self, x, labels=None, embed=False):
 
         # pdb.set_trace()
-        x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
+        # x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
         # return x
 
         seq_features = None
@@ -119,9 +125,20 @@ class CAT(nn.Module):
 
             if self.use_ViT:
                 _, c, h, w = x.size()
-                x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, 512, 6, t*10]
-                x = self.vit(x)         # [bs, 1024]
-                x = self.vit_fc(x)      # [bs, dim_embedding]
+
+                # 2 ViT
+                x = self.vit1(x)    # [bs * self.num_clip, 1024]
+                x = x.reshape(-1, self.num_clip, 1024)
+                x = self.vit2(x, embedded=True)
+                x = self.vit_fc(x)
+
+                # 1 ViT
+                # input for all per dense-vit
+                # x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)
+                # input for per raw-vit
+                # x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
+                # x = self.vit(x)         # [bs, 1024]
+                # x = self.vit_fc(x)      # [bs, dim_embedding]
             else:
                 x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
                 x = x.flatten(1)        # [bs * num_clip, 512]

@@ -48,6 +48,7 @@ class Attention(nn.Module):
         )
 
     def forward(self, x, mask = None):
+        # pdb.set_trace()
         b, n, _, h = *x.shape, self.heads
         qkv = self.to_qkv(x).chunk(3, dim = -1)
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = h), qkv)
@@ -79,7 +80,9 @@ class Transformer(nn.Module):
                 Residual(PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout)))
             ]))
     def forward(self, x, mask = None):
+
         for attn, ff in self.layers:
+            # pdb.set_trace()
             x = attn(x, mask = mask)
             x = ff(x)
         return x
@@ -114,26 +117,26 @@ class ViT(nn.Module):
         self.pool = pool
         self.to_latent = nn.Identity()
 
-        self.mlp_head = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
-        )
+        # self.mlp_head = nn.Sequential(
+        #     nn.LayerNorm(dim),
+        #     nn.Linear(dim, num_classes)
+        # )
 
-    def forward(self, img, mask = None):
+    def forward(self, x, mask = None, embedded=False):
         # pdb.set_trace()
 
-        p = self.patch_size
+        if not embedded:
+            p = self.patch_size
 
-        x = rearrange(img, 'b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = p[0], p2 = p[1])
-        x = self.patch_to_embedding(x)
+            x = rearrange(x, 'b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = p[0], p2 = p[1])
+            x = self.patch_to_embedding(x)
+
         b, n, _ = x.shape
 
         cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, :(n + 1)]
         # x = self.dropout(x)
-
-        # pdb.set_trace()
 
         x = self.transformer(x, mask)
 
@@ -145,4 +148,5 @@ class ViT(nn.Module):
 
         return x
 
-        return self.mlp_head(x)
+        # return self.mlp_head(x)
+

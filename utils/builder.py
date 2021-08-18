@@ -125,6 +125,7 @@ class builder:
         return ViT(
             image_size=(6, 10 * self.num_clip),
             patch_size=(6, 10),
+            # patch_size=(1, 1),
             num_classes=self.num_class,
             dim=1024,
             depth=6,
@@ -136,7 +137,65 @@ class builder:
             fix_embedding=self.fix_ViT_projection
         )
 
+    def build_2vit(self):
 
+        vit1 = ViT(
+            image_size=(180, 320),
+            patch_size=(20, 20),
+            num_classes=self.num_class,
+            dim=1024,
+            depth=6,
+            heads=8,
+            mlp_dim=2048,
+            channels=3,
+            dropout=self.dropout,
+            emb_dropout=self.dropout,
+            fix_embedding=self.fix_ViT_projection
+        )
+
+        vit2 = ViT(
+            image_size=(1, 16),
+            patch_size=(1, 1),
+            num_classes=self.num_class,
+            dim=1024,
+            depth=6,
+            heads=8,
+            mlp_dim=2048,
+            channels=512,
+            dropout=self.dropout,
+            emb_dropout=self.dropout,
+            fix_embedding=self.fix_ViT_projection
+        )
+
+        # vit1 = ViT(
+        #     image_size=(6, 10),
+        #     patch_size=(1, 1),
+        #     num_classes=self.num_class,
+        #     dim=1024,
+        #     depth=6,
+        #     heads=8,
+        #     mlp_dim=2048,
+        #     channels=TRUNCATE_DIM[self.base_model],
+        #     dropout=self.dropout,
+        #     emb_dropout=self.dropout,
+        #     fix_embedding=self.fix_ViT_projection
+        # )
+        #
+        # vit2 = ViT(
+        #     image_size=(1, 16),
+        #     patch_size=(1, 1),
+        #     num_classes=self.num_class,
+        #     dim=1024,
+        #     depth=6,
+        #     heads=8,
+        #     mlp_dim=2048,
+        #     channels=TRUNCATE_DIM[self.base_model],
+        #     dropout=self.dropout,
+        #     emb_dropout=self.dropout,
+        #     fix_embedding=self.fix_ViT_projection
+        # )
+
+        return vit1, vit2
 
     def build_seq_features_extractor(self):
 
