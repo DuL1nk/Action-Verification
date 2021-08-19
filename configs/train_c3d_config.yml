@@ -6,10 +6,10 @@ TRAIN:
   BATCH_SIZE: 16
   LR: 0.0001
   DROPOUT: 0
-  GRAD_MAX_NORM: 1
-  USE_ADAMW: True
+#  GRAD_MAX_NORM: 1
+#  USE_ADAMW: True
 #  SAVE_PATH: 'logs/test'
-  SAVE_PATH: 'logs/c3d_sports1m-pre_lr0.0001_bs16'
+  SAVE_PATH: 'logs/c3d_sports1m-pre_lr0.0001_new-sampler'
 
 MODEL:
   BACKBONE: 'c3d'

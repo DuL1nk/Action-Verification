@@ -1,32 +1,35 @@
 TRAIN:
   USE_CUDA: True
-  MAX_EPOCH: 200
+  MAX_EPOCH: 100
   DECAY_EPOCHS: 100
   DECAY_RATE: 0.1
   BATCH_SIZE: 16
-  LR: 0.001
+  LR: 0.0001
   DROPOUT: 0
   PARTIAL_BN: False
+  FREEZE_BACKBONE: True
   SEED: 1234
 #  GRAD_MAX_NORM: 10
 #  USE_ADAMW: True
 #  FIX_VIT_PROJECTION: True
 #  SAVE_PATH: 'logs/test'
-#  SAVE_PATH: 'logs/resnet50+vit+sa_img-pre_lr0.001_new-sampler'
-  SAVE_PATH: 'coin_logs/resnet101_img-pre_lr0.001'
-
+#  SAVE_PATH: 'logs/resnet50+vit_img-pre_lr0.001_new-sampler'
+  SAVE_PATH: 'coin_logs/resnet50+vit_img-pre_lr0.0001_freeze-and-not'
+#  SAVE_PATH: 'coin_logs/test'
 
 MODEL:
   BACKBONE: 'cat'
   BACKBONE_DIM: '2D'
-  BASE_MODEL: 'resnet101'
-  PRETRAIN: 'pretrained_models/resnet101-ImageNet.pth'
-#  PRETRAIN_PATH: 'logs/resnet18_lr0.001_pretrain/save_models/30_checkpoint.tar'
+  BASE_MODEL: 'resnet50'
+#  PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
+  PRETRAIN: 'coin_logs/resnet50_img-pre_lr0.001/save_models/epoch_186.tar'
   DIM_EMBEDDING: 128
-#  TRANSFORMER: True
+  TRANSFORMER: True
 #  ALIGNMENT: True
+#  SEQ_LOSS_COEF: 0.1
 #  COSFACE: True
   SAVE_EPOCHS: 1
+
 
 DATASET:
   MODE: 'train'

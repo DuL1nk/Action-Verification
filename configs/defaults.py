@@ -21,6 +21,7 @@ _C.TRAIN.GRAD_MAX_NORM = None
 _C.TRAIN.USE_ADAMW = False
 _C.TRAIN.FIX_VIT_PROJECTION = False
 _C.TRAIN.PARTIAL_BN = False     # Freeze BatchNorm2D except the first layer in backbone
+_C.TRAIN.FREEZE_BACKBONE = False
 
 # Model configuration
 _C.MODEL = CN()
@@ -35,7 +36,7 @@ _C.MODEL.TRANSFORMER = False    # Whether to use ViT module
 _C.MODEL.ALIGNMENT = False      # Whether to use sequence alignment module
 _C.MODEL.COSFACE = False
 _C.MODEL.CHECKPOINT_PATH = None
-_C.MODEL.SEQ_LOSS_COEF = 1
+_C.MODEL.SEQ_LOSS_COEF = 1.0
 _C.MODEL.SAVE_EPOCHS = 5        # Save model per 5 epochs
 
 
