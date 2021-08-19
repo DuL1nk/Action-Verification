@@ -113,7 +113,7 @@ class CAT(nn.Module):
     def forward(self, x, labels=None, embed=False):
 
         # pdb.set_trace()
-        # x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
+        x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
         # return x
 
         seq_features = None
@@ -133,20 +133,21 @@ class CAT(nn.Module):
                 x = self.vit_fc(x)
 
                 # 1 ViT
-                # input for all per dense-vit
+                # input for dense-vit
                 # x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)
-                # input for per raw-vit
+                # input for raw-vit
                 # x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
                 # x = self.vit(x)         # [bs, 1024]
                 # x = self.vit_fc(x)      # [bs, dim_embedding]
             else:
-                x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
-                x = x.flatten(1)        # [bs * num_clip, 512]
+                if 'resnet' in self.base_model:
+                    x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
+                    x = x.flatten(1)        # [bs * num_clip, 512]
                 x = x.reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])    # [bs, num_clip, dim_feature]
                 x = self.temporal_mix_conv(x)
                 x = x.squeeze(1)
-
                 x = self.embed_fc(x)  # [bs, dim_embedding]
+
 
         # [bs, dim_embedding]
         if embed:
