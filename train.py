@@ -38,10 +38,13 @@ def train():
                 use_SeqAlign=cfg.MODEL.ALIGNMENT,
                 use_CosFace=cfg.MODEL.COSFACE,
                 fix_ViT_projection=cfg.TRAIN.FIX_VIT_PROJECTION,
-                partial_bn=cfg.TRAIN.PARTIAL_BN).to(device)
+                partial_bn=cfg.TRAIN.PARTIAL_BN,
+                freeze_backbone=cfg.TRAIN.FREEZE_BACKBONE).to(device)
 
 
     # pdb.set_trace()
+    # for name, param in model.named_parameters():
+    #     print(name, param.nelement())
 
 
     logger.info("Model have {} paramerters in total".format(sum(x.numel() for x in model.parameters())))
@@ -67,9 +70,18 @@ def train():
         model = torch.nn.DataParallel(model)
 
     model.train()
+    # pdb.set_trace()
     start_time = time.time()
+    flag = False
     # Start training
     for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
+
+        if epoch >= 40 and cfg.TRAIN.FREEZE_BACKBONE and flag:
+            print('Unfreezeing backbone from epoch %d.' % (epoch + 1))
+            flag = False
+            for param in model.backbone.parameters():
+                param.requires_grad = True
+
         loss = 0
         loss_per_epoch = 0
         num_true_pred = 0
@@ -88,10 +100,10 @@ def train():
             time_spot1 = time.time()
             # logger.info("Iter %d: Loading data costs %d" % (iter, time_spot1 - time_spot0))
 
-            frames1 = frames_preprocess(sample['frames_list1'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device)
-            frames2 = frames_preprocess(sample['frames_list2'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device)
-            labels1 = sample['label1'].to(device)
-            labels2 = sample['label2'].to(device)
+            frames1 = frames_preprocess(sample['frames_list1'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            frames2 = frames_preprocess(sample['frames_list2'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            labels1 = sample['label1'].to(device, non_blocking=True)
+            labels2 = sample['label2'].to(device, non_blocking=True)
 
             pred1, seq_features1 = model(frames1)
             pred2, seq_features2 = model(frames2)
@@ -132,9 +144,10 @@ def train():
 
 
         # Learning rate decay
-        if (epoch % cfg.TRAIN.DECAY_EPOCHS == 0):
+        if ((epoch + 1) % cfg.TRAIN.DECAY_EPOCHS == 0):
             for param_group in optimizer.param_groups:
                 param_group['lr'] = param_group['lr'] * cfg.TRAIN.DECAY_RATE
+                logger.info('Epoch: %d, change lr to %.6f' % (epoch + 1, param_group['lr']))
 
 
 
@@ -150,9 +163,6 @@ def train():
             except:
                 save_dict['model_state_dict'] = model.state_dict()
 
-            # if not os.path.exists(cfg.SAVE.CHECKPOINT_PATH):
-            #     os.makedirs(cfg.SAVE.CHECKPOINT_PATH)
-            # torch.save(save_dict, os.path.join(cfg.SAVE.CHECKPOINT_PATH, 'checkpoint.tar'))
 
             # Save model every 10 epochs
             if not os.path.exists(checkpoint_dir):
@@ -184,6 +194,13 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
 if __name__ == "__main__":
     args = parse_args()
     cfg = get_cfg_defaults()
@@ -191,12 +208,7 @@ if __name__ == "__main__":
         cfg.merge_from_file(args.config)
 
 
-    def setup_seed(seed):
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        np.random.seed(seed)
-        random.seed(seed)
-        torch.backends.cudnn.deterministic = True
+
 
 
     setup_seed(cfg.TRAIN.SEED)
