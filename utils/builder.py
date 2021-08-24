@@ -18,6 +18,7 @@ TRUNCATE_DIM = {'resnet18': 512,
                 'resnet101': 2048,
                 'bninception': 1024,
                 'BNInception': 1024,
+                'vit': 512,
                 'vgg': 512,
                 'tsn': 1024,
                 'tsm': 1024,
@@ -75,6 +76,20 @@ class builder:
                 backbone = vgg16(self.pretrain)
             elif self.base_model == 'bninception':
                 pass
+            elif self.base_model == 'vit':
+                backbone = ViT(
+                    image_size=(180, 320),
+                    patch_size=(20, 20),
+                    num_classes=self.num_class,
+                    dim=512,
+                    depth=6,
+                    heads=8,
+                    mlp_dim=2048,
+                    channels=3,
+                    dropout=self.dropout,
+                    emb_dropout=self.dropout,
+                    fix_embedding=self.fix_ViT_projection
+                )
 
         elif self.backbone_model == 'c3d':
             backbone = C3D(pretrain=self.pretrain,
@@ -124,8 +139,8 @@ class builder:
 
         return ViT(
             image_size=(6, 10 * self.num_clip),
-            patch_size=(6, 10),
-            # patch_size=(1, 1),
+            # patch_size=(6, 10),   # raw-vit
+            patch_size=(1, 1),      # dense-vit
             num_classes=self.num_class,
             dim=1024,
             depth=6,
@@ -137,17 +152,34 @@ class builder:
             fix_embedding=self.fix_ViT_projection
         )
 
+        # vit + vit
+        return ViT(
+            image_size=(1, 16),
+            patch_size=(1, 1),
+            num_classes=self.num_class,
+            dim=512,
+            depth=6,
+            heads=8,
+            mlp_dim=2048,
+            channels=512,
+            dropout=self.dropout,
+            emb_dropout=self.dropout,
+            fix_embedding=self.fix_ViT_projection
+        )
+
+
     def build_2vit(self):
 
+        # backbone + 2vit
         vit1 = ViT(
-            image_size=(180, 320),
-            patch_size=(20, 20),
+            image_size=(6, 10),
+            patch_size=(1, 1),
             num_classes=self.num_class,
             dim=1024,
             depth=6,
             heads=8,
             mlp_dim=2048,
-            channels=3,
+            channels=TRUNCATE_DIM[self.base_model],
             dropout=self.dropout,
             emb_dropout=self.dropout,
             fix_embedding=self.fix_ViT_projection
@@ -161,43 +193,49 @@ class builder:
             depth=6,
             heads=8,
             mlp_dim=2048,
-            channels=512,
+            channels=TRUNCATE_DIM[self.base_model],
             dropout=self.dropout,
             emb_dropout=self.dropout,
             fix_embedding=self.fix_ViT_projection
         )
 
-        # vit1 = ViT(
-        #     image_size=(6, 10),
-        #     patch_size=(1, 1),
-        #     num_classes=self.num_class,
-        #     dim=1024,
-        #     depth=6,
-        #     heads=8,
-        #     mlp_dim=2048,
-        #     channels=TRUNCATE_DIM[self.base_model],
-        #     dropout=self.dropout,
-        #     emb_dropout=self.dropout,
-        #     fix_embedding=self.fix_ViT_projection
-        # )
-        #
-        # vit2 = ViT(
-        #     image_size=(1, 16),
-        #     patch_size=(1, 1),
-        #     num_classes=self.num_class,
-        #     dim=1024,
-        #     depth=6,
-        #     heads=8,
-        #     mlp_dim=2048,
-        #     channels=TRUNCATE_DIM[self.base_model],
-        #     dropout=self.dropout,
-        #     emb_dropout=self.dropout,
-        #     fix_embedding=self.fix_ViT_projection
-        # )
-
         return vit1, vit2
 
     def build_seq_features_extractor(self):
+
+        # return nn.Sequential(
+        #     ViT(
+        #         image_size=(180, 320),
+        #         patch_size=(20, 20),
+        #         num_classes=self.num_class,
+        #         dim=1024,
+        #         depth=4,
+        #         heads=4,
+        #         mlp_dim=2048,
+        #         channels=3,
+        #         dropout=self.dropout,
+        #         emb_dropout=self.dropout,
+        #         fix_embedding=self.fix_ViT_projection
+        #     ),
+        #     Reshape(-1, self.num_clip, 1024)
+        # )
+
+        return nn.Sequential(
+            ViT(
+            image_size=(6, 10),
+            patch_size=(1, 1),
+            num_classes=self.num_class,
+            dim=1024,
+            depth=6,
+            heads=8,
+            mlp_dim=2048,
+            channels=TRUNCATE_DIM[self.base_model],
+            dropout=self.dropout,
+            emb_dropout=self.dropout,
+            fix_embedding=self.fix_ViT_projection
+        ),
+            Reshape(-1, self.num_clip, 1024)
+        )
 
         return nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
