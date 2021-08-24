@@ -63,15 +63,12 @@ class CAT(nn.Module):
 
         self.backbone = model_builder.build_backbone()
 
-        if use_SeqAlign:
-            self.seq_features_extractor = model_builder.build_seq_features_extractor()
-
         if self.backbone_model == 'cat':
             if use_SeqAlign:
                 self.seq_features_extractor = model_builder.build_seq_features_extractor()
             if use_ViT:
-                self.vit1, self.vit2 = model_builder.build_2vit()
-                # self.vit = model_builder.build_vit()
+                # self.vit1, self.vit2 = model_builder.build_2vit()
+                self.vit = model_builder.build_vit()
                 self.vit_fc = nn.Linear(1024, dim_embedding)
             else:
                 self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -113,32 +110,46 @@ class CAT(nn.Module):
     def forward(self, x, labels=None, embed=False):
 
         # pdb.set_trace()
+
+        seq_features = None
+        # if self.use_SeqAlign:
+        #     seq_features = self.seq_features_extractor(x)
+
         x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
         # return x
 
-        seq_features = None
+
 
         if self.backbone_model == 'cat':
 
             if self.use_SeqAlign:
+                # print('*** sa-vit ***')
                 seq_features = self.seq_features_extractor(x)
 
             if self.use_ViT:
-                _, c, h, w = x.size()
 
-                # 2 ViT
-                x = self.vit1(x)    # [bs * self.num_clip, 1024]
-                x = x.reshape(-1, self.num_clip, 1024)
-                x = self.vit2(x, embedded=True)
-                x = self.vit_fc(x)
+                # Single ViT
+                if self.base_model == 'vit':
+                    _, c = x.size()
+                    x = x.reshape(-1, self.num_clip, c)
+                    x = self.vit(x, embedded=True)  # [bs, 1024]
+                else:
+                    _, c, h, w = x.size()
+                    # input for raw-vit
+                    # x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
+                    # input for dense-vit
+                    x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)   # [bs, dim, 6*t, 10]
+                    # print('*** vit ***')
+                    x = self.vit(x)  # [bs, 1024]
+                x = self.vit_fc(x)  # [bs, dim_embedding]
 
-                # 1 ViT
-                # input for dense-vit
-                # x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)
-                # input for raw-vit
-                # x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
-                # x = self.vit(x)         # [bs, 1024]
-                # x = self.vit_fc(x)      # [bs, dim_embedding]
+
+                # Series ViT
+                # x = self.vit1(x)    # [bs * self.num_clip, 1024]
+                # x = x.reshape(-1, self.num_clip, 1024)
+                # x = self.vit2(x, embedded=True)
+                # x = self.vit_fc(x)
+
             else:
                 if 'resnet' in self.base_model:
                     x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
