@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from einops import rearrange, repeat
 from torch import nn
+from visualizer import get_local
 import pdb
 
 MIN_NUM_PATCHES = 16
@@ -47,6 +48,7 @@ class Attention(nn.Module):
             nn.Dropout(dropout)
         )
 
+    @get_local('attn')
     def forward(self, x, mask = None):
         # pdb.set_trace()
         b, n, _, h = *x.shape, self.heads
@@ -64,10 +66,11 @@ class Attention(nn.Module):
             del mask
 
         attn = dots.softmax(dim=-1)
+        # pdb.set_trace()
 
         out = torch.einsum('bhij,bhjd->bhid', attn, v)
         out = rearrange(out, 'b h n d -> b n (h d)')
-        out =  self.to_out(out)
+        out = self.to_out(out)
         return out
 
 class Transformer(nn.Module):
@@ -80,7 +83,6 @@ class Transformer(nn.Module):
                 Residual(PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout)))
             ]))
     def forward(self, x, mask = None):
-
         for attn, ff in self.layers:
             # pdb.set_trace()
             x = attn(x, mask = mask)
@@ -117,10 +119,10 @@ class ViT(nn.Module):
         self.pool = pool
         self.to_latent = nn.Identity()
 
-        # self.mlp_head = nn.Sequential(
-        #     nn.LayerNorm(dim),
-        #     nn.Linear(dim, num_classes)
-        # )
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(dim),
+            nn.Linear(dim, num_classes)
+        )
 
     def forward(self, x, mask = None, embedded=False):
         # pdb.set_trace()
@@ -138,6 +140,7 @@ class ViT(nn.Module):
         x += self.pos_embedding[:, :(n + 1)]
         # x = self.dropout(x)
 
+        # pdb.set_trace()
         x = self.transformer(x, mask)
 
         # return x

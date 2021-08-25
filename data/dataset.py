@@ -105,8 +105,11 @@ class ActionVerificationDataset(data.Dataset):
                 'index': index,
                 'frames_list1': self.sample_clips(data_path_split[0]),
                 'frames_list2': self.sample_clips(data_path_split[2]),
-                'label1': action_ids_bank[self.mode].index(data_path_split[1]),
-                'label2': action_ids_bank[self.mode].index(data_path_split[3])
+                'raw_frames_list1': self.sample_clips(data_path_split[0], False),
+                # 'label1': action_ids_bank[self.mode].index(data_path_split[1]),
+                # 'label2': action_ids_bank[self.mode].index(data_path_split[3])
+                'label1': int(data_path_split[1]),
+                'label2': int(data_path_split[3])
             }
         elif len(data_path_split) == 1:
             # pretrain
@@ -128,7 +131,7 @@ class ActionVerificationDataset(data.Dataset):
             return len(self.data_list)
 
 
-    def sample_clips(self, dir_path):
+    def sample_clips(self, dir_path, apply_normalization=True):
         all_frames = os.listdir(dir_path)
         all_frames = [x for x in all_frames if '_' not in x]
 
@@ -143,7 +146,7 @@ class ActionVerificationDataset(data.Dataset):
             sampled_clips = []
             for i in range(self.num_clip):
                 start_index = np.random.randint(segments[i], segments[i + 1])
-                frames = self.sample_frames(dir_path, start_index, self.augment)
+                frames = self.sample_frames(dir_path, start_index, self.augment, apply_normalization)
                 sampled_clips.append(frames.unsqueeze(-1))
             sampled_clips = torch.cat(sampled_clips, dim=-1)
             return sampled_clips
@@ -154,7 +157,7 @@ class ActionVerificationDataset(data.Dataset):
                 sampled_clips = []
                 for i in range(self.num_clip):
                     start_index = segments[i] + int((segments[i+1]-segments[i])/4) * (j+1)
-                    frames = self.sample_frames(dir_path, start_index, self.augment)
+                    frames = self.sample_frames(dir_path, start_index, self.augment, apply_normalization)
                     sampled_clips.append(frames.unsqueeze(-1))
                 sampled_clips = torch.cat(sampled_clips, dim=-1)
                 sampled_clips_list.append(sampled_clips)
@@ -169,7 +172,7 @@ class ActionVerificationDataset(data.Dataset):
         pass
 
 
-    def sample_frames(self, data_path, start_index, augment):
+    def sample_frames(self, data_path, start_index, augment, apply_normalization=True):
         sampled_frames = []
         for i in range(self.len_clip):
             frame_index = start_index + i
@@ -208,8 +211,11 @@ class ActionVerificationDataset(data.Dataset):
         # PIL image to tensor
         transforms.append(tf.ToTensor())
 
+        # if apply_normalization == False:
+        #     pdb.set_trace()
+
         # Normalization
-        if self.normalization is not None:
+        if self.normalization is not None and apply_normalization:
             transforms.append(tf.Normalize(self.normalization[0], self.normalization[1]))
 
         transforms = tf.Compose(transforms)
@@ -266,7 +272,8 @@ def load_dataset(cfg):
                               batch_size=cfg.TRAIN.BATCH_SIZE,
                               shuffle=False,
                               sampler=sampler,
-                              drop_last=True,
-                              num_workers=cfg.DATASET.NUM_WORKERS)
+                              drop_last=False,
+                              num_workers=cfg.DATASET.NUM_WORKERS,
+                              pin_memory=True)
 
     return loaders
