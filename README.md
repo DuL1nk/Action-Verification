@@ -33,5 +33,11 @@ For testing:
 
 `$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python eval.py --config [eval config] --model_path [model_path]`
 
+## Visualization
+
+First follow the instructions in [here](https://github.com/luo3300612/Visualizer) and then run the following command:
+
+`$ CUDA_VISIBLE_DEVICES=[X,X,X,X] python vis.py --config [vis config] --model_path [model_path]`
+
 
 
