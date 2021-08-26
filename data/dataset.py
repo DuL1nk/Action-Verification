@@ -9,6 +9,7 @@ import pdb
 import time
 import numpy as np
 import logging
+from data.label import LABELS
 from torch.utils.data.sampler import Sampler
 
 from torchvision import transforms as tf
@@ -105,11 +106,9 @@ class ActionVerificationDataset(data.Dataset):
                 'index': index,
                 'frames_list1': self.sample_clips(data_path_split[0]),
                 'frames_list2': self.sample_clips(data_path_split[2]),
-                'raw_frames_list1': self.sample_clips(data_path_split[0], False),
-                # 'label1': action_ids_bank[self.mode].index(data_path_split[1]),
-                # 'label2': action_ids_bank[self.mode].index(data_path_split[3])
-                'label1': int(data_path_split[1]),
-                'label2': int(data_path_split[3])
+                # 'raw_frames_list1': self.sample_clips(data_path_split[0], False),
+                'label1': LABELS['COIN'][self.mode].index(data_path_split[1]),
+                'label2': LABELS['COIN'][self.mode].index(data_path_split[3])
             }
         elif len(data_path_split) == 1:
             # pretrain

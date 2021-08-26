@@ -51,7 +51,7 @@ _C.DATASET.NUM_SAMPLE = 600     # num of samples while training
 _C.DATASET.AUGMENT = True       # whether to apply data augmentation
 _C.DATASET.NUM_CLIP = 8         # num of clips
 _C.DATASET.LEN_CLIP = 1         # length of each clip (1 for 2D backbone; 8 for 3D backbone)
-_C.DATASET.SHUFFLE = True
+_C.DATASET.SHUFFLE = True       # whether to shuffle the data
 
 
 

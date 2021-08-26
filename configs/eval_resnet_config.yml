@@ -1,5 +1,5 @@
 TRAIN:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 32
   DROPOUT: 0
 
 MODEL:
@@ -14,7 +14,10 @@ DATASET:
 #  TXT_PATH: '/p300/dataset/ActionVerification/test.txt'
 #  NUM_CLASS: 45
   TXT_PATH: '/p300/dataset/COIN/test.txt'
-  NUM_CLASS: 180
+#  TXT_PATH: '/ssd0/qyc/dataset/COIN/test.txt'
+#  TXT_PATH: '/p300/dataset/COIN/val.txt'
+#  TXT_PATH: '/ssd0/qyc/dataset/COIN/val.txt'
+  NUM_CLASS: 303
   NUM_CLIP: 16
   LEN_CLIP: 1
   AUGMENT: False

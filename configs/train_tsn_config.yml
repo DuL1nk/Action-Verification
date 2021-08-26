@@ -1,18 +1,18 @@
 TRAIN:
   USE_CUDA: True
-  MAX_EPOCH: 200
-  DECAY_EPOCHS: 100
+  MAX_EPOCH: 100
+  DECAY_EPOCHS: 40
   DECAY_RATE: 0.1
   BATCH_SIZE: 16
-  LR: 0.001
+  LR: 0.0001
   DROPOUT: 0
   PARTIAL_BN: False
 #  GRAD_MAX_NORM: 1
 #  USE_ADAMW: True
 #  FIX_VIT_PROJECTION: True
 #  SAVE_PATH: 'logs/test'
-  SAVE_PATH: 'logs/tsn-res_img-pre_lr0.001_new-sampler'
-#  SAVE_PATH: 'coin_logs/tsn-res_img-pre_lr0.001'
+#  SAVE_PATH: 'logs/tsn-res_img-pre_lr0.001_new-sampler'
+  SAVE_PATH: 'coin_logs/tsn-res-img_lr0.0001'
 
 MODEL:
   BACKBONE: 'tsn'
@@ -29,12 +29,12 @@ MODEL:
 
 DATASET:
   MODE: 'train'
-  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
-  NUM_CLASS: 45
-  NUM_SAMPLE: 800
-#  TXT_PATH: '/p300/dataset/COIN/train.txt'
-#  NUM_CLASS: 180
-#  NUM_SAMPLE: 1600
+#  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
+#  NUM_CLASS: 45
+#  NUM_SAMPLE: 800
+  TXT_PATH: '/p300/dataset/COIN/train_all.txt'
+  NUM_CLASS: 442
+  NUM_SAMPLE: 1600
   NUM_CLIP: 16
   LEN_CLIP: 1
 
