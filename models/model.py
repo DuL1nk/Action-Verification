@@ -69,11 +69,12 @@ class CAT(nn.Module):
             if use_ViT:
                 # self.vit1, self.vit2 = model_builder.build_2vit()
                 self.vit = model_builder.build_vit()
-                self.vit_fc = nn.Linear(1024, dim_embedding)
+                self.embed_fc = nn.Linear(1024, dim_embedding)
             else:
                 self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-                self.temporal_mix_conv = nn.Conv1d(num_clip, 1, 1)
                 self.embed_fc = nn.Linear(TRUNCATE_DIM[self.base_model], dim_embedding)
+            self.temporal_mix_conv = nn.Conv1d(num_clip, 1, 1)
+
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(dim_embedding, num_class, bias=False) if use_CosFace else nn.Linear(dim_embedding, num_class)
 
@@ -136,28 +137,30 @@ class CAT(nn.Module):
                 else:
                     _, c, h, w = x.size()
                     # input for raw-vit
-                    # x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
+                    x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
                     # input for dense-vit
-                    x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)   # [bs, dim, 6*t, 10]
+                    # x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)   # [bs, dim, 6*t, 10]
                     # print('*** vit ***')
-                    x = self.vit(x)  # [bs, 1024]
-                x = self.vit_fc(x)  # [bs, dim_embedding]
+                    x = self.vit(x)  # [bs, 16, 1024]
 
 
                 # Series ViT
+                # print('*** vit1 ***')
                 # x = self.vit1(x)    # [bs * self.num_clip, 1024]
                 # x = x.reshape(-1, self.num_clip, 1024)
+                # # print('*** vit2 ***')
                 # x = self.vit2(x, embedded=True)
-                # x = self.vit_fc(x)
 
             else:
                 if 'resnet' in self.base_model:
                     x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
                     x = x.flatten(1)        # [bs * num_clip, 512]
                 x = x.reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])    # [bs, num_clip, dim_feature]
-                x = self.temporal_mix_conv(x)
-                x = x.squeeze(1)
-                x = self.embed_fc(x)  # [bs, dim_embedding]
+
+            # x: [bs, num_clip, dim_feature]
+            x = self.temporal_mix_conv(x)
+            x = x.squeeze(1)
+            x = self.embed_fc(x)  # [bs, dim_embedding]
 
 
         # [bs, dim_embedding]

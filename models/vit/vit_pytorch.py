@@ -102,7 +102,7 @@ class ViT(nn.Module):
         # num_patches = (image_size // patch_size) ** 2
         # patch_dim = channels * patch_size ** 2
         # assert num_patches > MIN_NUM_PATCHES, f'your number of patches ({num_patches}) is way too small for attention to be effective (at least 16). Try decreasing your patch size'
-        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+        assert pool in {'cls', 'mean', 'all'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
         self.patch_size = patch_size
 
@@ -145,7 +145,7 @@ class ViT(nn.Module):
 
         # return x
 
-        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        x = x[:, 1:] if self.pool == 'all' else x[:, 0]
 
         x = self.to_latent(x)
 
