@@ -7,6 +7,7 @@ from configs.defaults import get_cfg_defaults
 from utils.logger import setup_logger
 from utils.input import frames_preprocess
 from utils.visualization import vis_embedding
+
 from models.model import CAT
 from train import setup_seed
 
@@ -31,12 +32,17 @@ def compute_auc(model, dist='L2'):
 
     # model = model.to(device)
     auc_value = 0
+    indices = []
 
     # auc metric
     model.eval()
     with torch.no_grad():
 
         for iter, sample in enumerate(tqdm(test_loader)):
+
+            # print(sample['index'])
+            # indices += sample['index']
+            # continue
 
             frames_list1 = sample["frames_list1"]
             frames_list2 = sample["frames_list2"]
@@ -51,11 +57,11 @@ def compute_auc(model, dist='L2'):
             # pdb.set_trace()
             for i in range(len(frames_list1)):
 
-                frames1 = frames_preprocess(frames_list1[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device)
-                frames2 = frames_preprocess(frames_list2[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device)
+                frames1 = frames_preprocess(frames_list1[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+                frames2 = frames_preprocess(frames_list2[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
 
-                # pdb.set_trace()
                 pred1 += model(frames1, embed=True)
+
                 pred2 += model(frames2, embed=True)
 
             # pdb.set_trace()
@@ -168,7 +174,7 @@ def eval():
     elif os.path.isfile(model_path):
         logger.info('To evaluate 1 models in %s' % (model_path))
         checkpoint = torch.load(model_path)
-        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        model.load_state_dict(checkpoint['model_state_dict'], strict=True)
         auc_value = compute_auc(model)
         logger.info("Model is %s, AUC is %.4f" % (model_path, auc_value))
 

@@ -110,7 +110,7 @@ def process_one_epoch(model_path, vis_func, **kwargs):
 
 def vis_attn(frames, attns):
 
-    # pdb.set_trace()
+    pdb.set_trace()
 
     bs, _, h, w = frames.size()
     frames = frames.reshape(cfg.TRAIN.BATCH_SIZE, cfg.DATASET.NUM_CLIP, 3, h, w)

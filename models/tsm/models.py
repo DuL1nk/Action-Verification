@@ -84,6 +84,8 @@ class TSN(nn.Module):
                 from models.tsm.temporal_shift import make_temporal_shift
                 make_temporal_shift(self.base_model, self.num_segments, n_div=self.shift_div, place=self.shift_place, temporal_pool=self.temporal_pool)
 
+            # pdb.set_trace()
+
             if self.non_local:
                 print('Adding non-local module...')
                 from models.tsm.non_local import make_non_local
