@@ -62,13 +62,13 @@ def process_one_epoch(model_path, vis_func, **kwargs):
             # indices += sample['index']
             # continue
 
-            frames_list1 = sample["frames_list1"]
-            frames_list2 = sample["frames_list2"]
+            frames_list1 = sample['frames_list1']
+            frames_list2 = sample['frames_list2']
             assert len(frames_list1) == len(frames_list2)
 
-            labels1 = sample["label1"].to(device)
-            labels2 = sample["label2"].to(device)
-            label = labels1 == labels2
+            labels1 = sample['label1']
+            labels2 = sample['label2']
+            label = torch.tensor(np.array(labels1) == np.array(labels2)).to(device)
 
             pred1 = 0
             pred2 = 0

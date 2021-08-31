@@ -20,6 +20,8 @@ from sklearn.metrics import auc
 from sklearn.metrics import roc_curve
 
 from tqdm import tqdm
+import numpy as np
+from data.label import LABELS
 
 def compute_auc(model, dist='L2'):
 
@@ -44,25 +46,40 @@ def compute_auc(model, dist='L2'):
             # indices += sample['index']
             # continue
 
-            frames_list1 = sample["frames_list1"]
-            frames_list2 = sample["frames_list2"]
+            frames_list1 = sample['frames_list1']
+            frames_list2 = sample['frames_list2']
             assert len(frames_list1) == len(frames_list2)
 
-            labels1 = sample["label1"].to(device)
-            labels2 = sample["label2"].to(device)
-            label = labels1 == labels2
+            labels1 = sample['label1']
+            labels2 = sample['label2']
+            label = torch.tensor(np.array(labels1) == np.array(labels2)).to(device)
 
             pred1 = 0
             pred2 = 0
+            num_true_pred = 0
             # pdb.set_trace()
             for i in range(len(frames_list1)):
 
                 frames1 = frames_preprocess(frames_list1[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
                 frames2 = frames_preprocess(frames_list2[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
 
-                pred1 += model(frames1, embed=True)
+                # pred1, seq_features1 = model(frames1)
+                # pred2, seq_features2 = model(frames2)
+                #
+                # labels1_idx = [LABELS['COIN']['train'].index(label_str) for label_str in labels1]
+                # labels2_idx = [LABELS['COIN']['train'].index(label_str) for label_str in labels2]
+                #
+                # pred_labels1 = torch.argmax(pred1, dim=-1)
+                # pred_labels2 = torch.argmax(pred2, dim=-1)
+                # num_true_pred += torch.sum(pred_labels1 == labels1_idx) + torch.sum(pred_labels2 == labels2_idx)
 
+
+                pred1 += model(frames1, embed=True)
                 pred2 += model(frames2, embed=True)
+
+
+
+
 
             # pdb.set_trace()
 
@@ -86,10 +103,12 @@ def compute_auc(model, dist='L2'):
 
     # print('min is', torch.min(preds))
     # print('mean is', torch.mean(preds))
-    # pdb.set_trace()
+
 
     fpr, tpr, thresholds = roc_curve(labels.cpu().detach().numpy(), preds.cpu().detach().numpy(), pos_label=0)
     auc_value = auc(fpr, tpr)
+
+    # pdb.set_trace()
 
     best_threshold = 0
     best_accuracy = 0

@@ -107,8 +107,10 @@ class ActionVerificationDataset(data.Dataset):
                 'frames_list1': self.sample_clips(data_path_split[0]),
                 'frames_list2': self.sample_clips(data_path_split[2]),
                 # 'raw_frames_list1': self.sample_clips(data_path_split[0], False),
-                'label1': LABELS['COIN'][self.mode].index(data_path_split[1]),
-                'label2': LABELS['COIN'][self.mode].index(data_path_split[3])
+                'label1': LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+                'label2': LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3]
+                # 'label1': data_path_split[1],
+                # 'label2': data_path_split[3]
             }
         elif len(data_path_split) == 1:
             # pretrain
@@ -141,7 +143,8 @@ class ActionVerificationDataset(data.Dataset):
         # if '1.4/luoweixin' in dir_path:
         #     pdb.set_trace()
 
-        if self.mode != 'test':
+        if self.mode == 'train':
+            # train mode
             sampled_clips = []
             for i in range(self.num_clip):
                 start_index = np.random.randint(segments[i], segments[i + 1])
@@ -149,7 +152,8 @@ class ActionVerificationDataset(data.Dataset):
                 sampled_clips.append(frames.unsqueeze(-1))
             sampled_clips = torch.cat(sampled_clips, dim=-1)
             return sampled_clips
-        elif self.mode == 'test':
+        elif self.mode == 'test' or self.mode == 'val':
+            # test, val model
             eval_per_segment = 3   # num of samples per segment while evaluating
             sampled_clips_list = []
             for j in range(eval_per_segment):
