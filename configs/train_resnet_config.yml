@@ -3,7 +3,7 @@ TRAIN:
   MAX_EPOCH: 100
   DECAY_EPOCHS: 40
   DECAY_RATE: 0.1
-  BATCH_SIZE: 16
+  BATCH_SIZE: 8
   LR: 0.0001
   DROPOUT: 0
   PARTIAL_BN: False
@@ -14,7 +14,7 @@ TRAIN:
 #  FIX_VIT_PROJECTION: True
 #  SAVE_PATH: 'logs/test'
 #  SAVE_PATH: 'logs/resnet50+vit_img-pre_lr0.001_new-sampler'
-  SAVE_PATH: 'coin_logs/resnet50-img+vit+lr0.0001'
+  SAVE_PATH: 'coin_logs/resnet50-img+vit_lr0.0001_margin1+cls'
 #  SAVE_PATH: 'coin_logs/test'
 
 MODEL:
@@ -27,8 +27,10 @@ MODEL:
   TRANSFORMER: True
 #  ALIGNMENT: True
 #  SEQ_LOSS_COEF: 0.1
+  NORM_LOSS_COEF: 0.01
 #  COSFACE: True
   SAVE_EPOCHS: 1
+
 
 
 DATASET:
@@ -36,8 +38,10 @@ DATASET:
 #  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
 #  NUM_CLASS: 45
 #  NUM_SAMPLE: 800
-  TXT_PATH: '/p300/dataset/COIN/train_all.txt'
-  NUM_CLASS: 442
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_triplet.txt'
+  TXT_PATH: '/p300/dataset/COIN/splits/train_triplet+cls.txt'
+  NUM_CLASS: 1396
   NUM_SAMPLE: 1600
   NUM_CLIP: 16
   LEN_CLIP: 1

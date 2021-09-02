@@ -37,7 +37,8 @@ _C.MODEL.ALIGNMENT = False      # Whether to use sequence alignment module
 _C.MODEL.COSFACE = False
 _C.MODEL.CHECKPOINT_PATH = None
 _C.MODEL.SEQ_LOSS_COEF = 1.0
-_C.MODEL.SAVE_EPOCHS = 5        # Save model per 5 epochs
+_C.MODEL.NORM_LOSS_COEF = None
+_C.MODEL.SAVE_EPOCHS = 1        # Save model per 5 epochs
 
 
 # Dataset configuration

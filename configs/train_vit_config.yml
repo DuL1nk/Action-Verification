@@ -4,12 +4,12 @@ TRAIN:
   DECAY_EPOCHS: 40
   DECAY_RATE: 0.1
   BATCH_SIZE: 16
-  LR: 0.00001
+  LR: 0.0001
   DROPOUT: 0
   PARTIAL_BN: False
   FREEZE_BACKBONE: False
   SEED: 1234
-  SAVE_PATH: 'coin_logs/vit_lr0.00001'
+  SAVE_PATH: 'coin_logs/vit+vit+sa_lr0.0001'
 #  SAVE_PATH: 'coin_logs/test'
 
 MODEL:
@@ -19,8 +19,8 @@ MODEL:
 #  PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
 #  PRETRAIN: 'coin_logs/resnet50_img-pre_lr0.001/save_models/epoch_186.tar'
   DIM_EMBEDDING: 128
-#  TRANSFORMER: True
-#  ALIGNMENT: True
+  TRANSFORMER: True
+  ALIGNMENT: True
 #  SEQ_LOSS_COEF: 0.1
 #  COSFACE: True
   SAVE_EPOCHS: 1

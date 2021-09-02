@@ -1,25 +1,23 @@
 TRAIN:
-  BATCH_SIZE: 8
+  BATCH_SIZE: 16
   DROPOUT: 0
 
 MODEL:
   BACKBONE: 'cat'
   BACKBONE_DIM: '2D'
-  BASE_MODEL: 'resnet50'
-  DIM_EMBEDDING: 1024
-#  TRANSFORMER: True
-#  ALIGNMENT: True
+  BASE_MODEL: 'vit'
+  TRANSFORMER: True
+  ALIGNMENT: True
 
 DATASET:
   MODE: 'val'
 #  TXT_PATH: '/p300/dataset/ActionVerification/test.txt'
 #  NUM_CLASS: 45
-#  TXT_PATH: '/p300/dataset/COIN/splits/test.txt'
+#  TXT_PATH: '/p300/dataset/COIN/test.txt'
 #  TXT_PATH: '/ssd0/qyc/dataset/COIN/test.txt'
-#  TXT_PATH: '/p300/dataset/COIN/splits/val.txt'
+  TXT_PATH: '/p300/dataset/COIN/val.txt'
 #  TXT_PATH: '/ssd0/qyc/dataset/COIN/val_ssd.txt'
-  TXT_PATH: '/ssd0/qyc/dataset/COIN/val_train_ssd.txt'
-  NUM_CLASS: 330
+  NUM_CLASS: 442
   NUM_CLIP: 16
   LEN_CLIP: 1
   AUGMENT: False

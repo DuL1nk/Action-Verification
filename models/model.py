@@ -164,6 +164,7 @@ class CAT(nn.Module):
 
 
         # [bs, dim_embedding]
+        embed_feature = x
         if embed:
             # x = F.normalize(x, 2, dim=1)
             return x
@@ -187,7 +188,7 @@ class CAT(nn.Module):
 
 
 
-        return x, seq_features
+        return x, seq_features, embed_feature
 
 
 

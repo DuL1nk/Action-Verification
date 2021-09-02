@@ -104,13 +104,35 @@ class ActionVerificationDataset(data.Dataset):
             # train_pairs or test_pairs
             sample = {
                 'index': index,
+                'data': data_path,
                 'frames_list1': self.sample_clips(data_path_split[0]),
                 'frames_list2': self.sample_clips(data_path_split[2]),
                 # 'raw_frames_list1': self.sample_clips(data_path_split[0], False),
                 'label1': LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
-                'label2': LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3]
+                'label2': LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
+                # 'path1': data_path_split[2],
+                # 'path2': data_path_split[3],
                 # 'label1': data_path_split[1],
                 # 'label2': data_path_split[3]
+            }
+        elif len(data_path_split) == 3:
+            # Triplet train pairs
+            sample = {
+                'index': index,
+                'frames_list1': self.sample_clips(data_path_split[0]),
+                'frames_list2': self.sample_clips(data_path_split[1]),
+                'frames_list3': self.sample_clips(data_path_split[2]),
+            }
+        elif len(data_path_split) == 6:
+            # Triplet+cls train pairs
+            sample = {
+                'index': index,
+                'frames_list1': self.sample_clips(data_path_split[0]),
+                'label1': LABELS['TRIPLET'][self.mode].index(data_path_split[1]),
+                'frames_list2': self.sample_clips(data_path_split[2]),
+                'label2': LABELS['TRIPLET'][self.mode].index(data_path_split[3]),
+                'frames_list3': self.sample_clips(data_path_split[4]),
+                'label3': LABELS['TRIPLET'][self.mode].index(data_path_split[5]),
             }
         elif len(data_path_split) == 1:
             # pretrain

@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 
+import numpy as np
+
 import pdb
 
 
@@ -47,3 +49,12 @@ def compute_seq_loss(seq1, seq2):
     loss = torch.sum(1 - torch.diagonal((corr1 + corr2) / 2, dim1=1, dim2=2)) / seq1.size(0)
 
     return loss
+
+def compute_norm_loss(embed_feature):
+    assert len(embed_feature.size()) == 2, 'Expect feature to compute norm loss have size of [bs, dim], but got %d dim of size' % len(embed_feature.size())
+
+    return np.sum([x.norm() for x in embed_feature])
+
+def compute_triplet_loss(triplet, margin=1.0, p=2):
+    triplet_loss = nn.TripletMarginLoss(margin=margin, p=p)
+    return triplet_loss(triplet[0], triplet[1], triplet[2])
