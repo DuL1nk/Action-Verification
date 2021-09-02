@@ -85,7 +85,7 @@ class builder:
                     depth=6,
                     heads=8,
                     mlp_dim=2048,
-                    pool='all',
+                    pool='cls',
                     channels=3,
                     dropout=self.dropout,
                     emb_dropout=self.dropout,
@@ -208,23 +208,18 @@ class builder:
 
     def build_seq_features_extractor(self):
 
+        # raw-sa for resnet backbone
         # return nn.Sequential(
-        #     ViT(
-        #         image_size=(180, 320),
-        #         patch_size=(20, 20),
-        #         num_classes=self.num_class,
-        #         dim=1024,
-        #         depth=4,
-        #         heads=4,
-        #         mlp_dim=2048,
-        #         channels=3,
-        #         dropout=self.dropout,
-        #         emb_dropout=self.dropout,
-        #         fix_embedding=self.fix_ViT_projection
-        #     ),
-        #     Reshape(-1, self.num_clip, 1024)
+        #     nn.AdaptiveAvgPool2d((1, 1)),
+        #     nn.Flatten(),
+        #     Reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])
+        #     # nn.Linear(TRUNCATE_DIM[self.base_model], 1024)
         # )
 
+        # raw-sa for vit backbone
+        # return Reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])
+
+        # vit-sa
         return nn.Sequential(
             ViT(
             image_size=(6, 10),
@@ -242,11 +237,6 @@ class builder:
             Reshape(-1, self.num_clip, 1024)
         )
 
-        return nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            Reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])
-        )
 
 
 
