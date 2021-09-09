@@ -219,10 +219,10 @@ logger = logging.getLogger('ActionVerification')
 def _resnet(arch, block, layers, pretrain, truncate, progress, **kwargs):
     model = ResNet(block, layers, truncate=truncate, **kwargs)
     if pretrain:
-
+        # pdb.set_trace()
         if pretrain[-4:] == '.pth':
             state_dict = torch.load(pretrain)
-            model.load_state_dict(state_dict)
+            model.load_state_dict({k:v for k,v in state_dict.items() if k in model.state_dict() and k[:2] != 'fc'}, strict=False)
         elif pretrain[-4:] == '.tar':
             checkpoint = torch.load(pretrain)
             state_dict = checkpoint['model_state_dict']
