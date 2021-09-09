@@ -21,7 +21,6 @@ import time
 import random
 
 
-
 def train():
 
     train_loader = load_dataset(cfg)
@@ -84,6 +83,8 @@ def train():
 
         loss = 0
         loss_per_epoch = 0
+        loss_triplet_per_epoch = 0
+        loss_cls_per_epoch = 0
         num_true_pred = 0
         dist_ms = 0
         dist_ums = 0
@@ -95,79 +96,98 @@ def train():
         #     print('权值', param)
 
         time_spot0 = time.time()
+
+
+        # pdb.set_trace()
+
+
         for iter, sample in enumerate(train_loader):
 
-            # pdb.set_trace()
 
-            time_spot1 = time.time()
+
+            # time_spot1 = time.time()
+            # # print('Epoch [{}/{}], Step [{}/{}]'.format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader)))
             # logger.info("Iter %d: Loading data costs %d" % (iter, time_spot1 - time_spot0))
+            # # pdb.set_trace()
+            # time_spot0 = time.time()
+            # continue
 
             # *** 1. Classification Training ***
-            # frames1 = frames_preprocess(sample['frames_list1'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            # frames2 = frames_preprocess(sample['frames_list2'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            # labels1 = sample['label1'].to(device, non_blocking=True)
-            # labels2 = sample['label2'].to(device, non_blocking=True)
-            #
-            # pred1, seq_features1, embed_feature1 = model(frames1)
-            # pred2, seq_features2, embed_feature2 = model(frames2)
-            #
-            # pred_labels1 = torch.argmax(pred1, dim=-1)
-            # pred_labels2 = torch.argmax(pred2, dim=-1)
-            # num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2)
-            #
-            #
-            # # Compute loss
-            # loss_cls = compute_cls_loss(pred1, labels1, cfg.MODEL.COSFACE) + compute_cls_loss(pred2, labels2, cfg.MODEL.COSFACE)
-            # loss_norm = compute_norm_loss(embed_feature1) + compute_norm_loss(embed_feature2)
-            # loss_seq = compute_seq_loss(seq_features1, seq_features2)
-            # if cfg.MODEL.NORM_LOSS_COEF:
-            #     loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq + cfg.MODEL.NORM_LOSS_COEF * loss_norm
-            # else:
-            #     loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
-
-
-            # *** 2. Triplet Training ***
-            frames1 = frames_preprocess(sample['frames_list1'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            frames2 = frames_preprocess(sample['frames_list2'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            frames3 = frames_preprocess(sample['frames_list3'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            frames1 = frames_preprocess(sample['frames_list1'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            frames2 = frames_preprocess(sample['frames_list2'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
             labels1 = sample['label1'].to(device, non_blocking=True)
             labels2 = sample['label2'].to(device, non_blocking=True)
-            labels3 = sample['label2'].to(device, non_blocking=True)
 
             pred1, seq_features1, embed_feature1 = model(frames1)
             pred2, seq_features2, embed_feature2 = model(frames2)
-            pred3, seq_features3, embed_feature3 = model(frames3)
-            # embed_feature1 = model(frames1, embed=True)
-            # embed_feature2 = model(frames2, embed=True)
-            # embed_feature3 = model(frames3, embed=True)
-            # pdb.set_trace()
 
             pred_labels1 = torch.argmax(pred1, dim=-1)
             pred_labels2 = torch.argmax(pred2, dim=-1)
-            pred_labels3 = torch.argmax(pred3, dim=-1)
-            num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2) + torch.sum(pred_labels3 == labels3)
+            num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2)
 
 
+            # Compute loss
+            loss_cls = compute_cls_loss(pred1, labels1, cfg.MODEL.COSFACE) + compute_cls_loss(pred2, labels2, cfg.MODEL.COSFACE)
+            loss_seq = compute_seq_loss(seq_features1, seq_features2)
+            if cfg.MODEL.NORM_LOSS_COEF:
+                loss_norm = compute_norm_loss(embed_feature1) + compute_norm_loss(embed_feature2)
+                loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq + cfg.MODEL.NORM_LOSS_COEF * loss_norm
+            else:
+                loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
 
-            dist_m = torch.sum((embed_feature1 - embed_feature2) ** 2, dim=1)
-            dist_um = (torch.sum((embed_feature1 - embed_feature3) ** 2, dim=1)+torch.sum((embed_feature2 - embed_feature3) ** 2, dim=1))/2
-            dist_ms += dist_m.mean()
-            dist_ums += dist_um.mean()
+            if (iter + 1) % 10 == 0:
+                logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Cls Loss: {:.4f}'
+                  .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item(), loss_cls))
 
 
-            loss_cls = (compute_cls_loss(pred1, labels1, cfg.MODEL.COSFACE) +
-                        compute_cls_loss(pred2, labels2, cfg.MODEL.COSFACE) +
-                        compute_cls_loss(pred3, labels3, cfg.MODEL.COSFACE)) / 3
-            loss_triplet = compute_triplet_loss([embed_feature1, embed_feature2, embed_feature3], margin=1)
-            # loss_seq = compute_seq_loss(seq_features1, seq_features2)
-            # loss = loss_triplet + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
-            # loss = loss_triplet
-            # loss = loss_cls
-            loss = loss_triplet + loss_cls
-            # print(embed_feature1.mean(), loss)
+            # *** 2. Triplet Training ***
+            # frames1 = frames_preprocess(sample['frames_list1'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            # frames2 = frames_preprocess(sample['frames_list2'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            # frames3 = frames_preprocess(sample['frames_list3'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            # labels1 = sample['label1'].to(device, non_blocking=True)
+            # labels2 = sample['label2'].to(device, non_blocking=True)
+            # labels3 = sample['label2'].to(device, non_blocking=True)
+            #
+            # pred1, seq_features1, embed_feature1 = model(frames1)
+            # pred2, seq_features2, embed_feature2 = model(frames2)
+            # pred3, seq_features3, embed_feature3 = model(frames3)
+            # # embed_feature1 = model(frames1, embed=True)
+            # # embed_feature2 = model(frames2, embed=True)
+            # # embed_feature3 = model(frames3, embed=True)
+            # # pdb.set_trace()
+            #
+            # pred_labels1 = torch.argmax(pred1, dim=-1)
+            # pred_labels2 = torch.argmax(pred2, dim=-1)
+            # pred_labels3 = torch.argmax(pred3, dim=-1)
+            # num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2) + torch.sum(pred_labels3 == labels3)
+            #
+            #
+            #
+            # dist_m = torch.sum((embed_feature1 - embed_feature2) ** 2, dim=1)
+            # dist_um = (torch.sum((embed_feature1 - embed_feature3) ** 2, dim=1)+torch.sum((embed_feature2 - embed_feature3) ** 2, dim=1))/2
+            # dist_ms += dist_m.mean()
+            # dist_ums += dist_um.mean()
+            #
+            #
+            # loss_cls = (compute_cls_loss(pred1, labels1, cfg.MODEL.COSFACE) +
+            #             compute_cls_loss(pred2, labels2, cfg.MODEL.COSFACE) +
+            #             compute_cls_loss(pred3, labels3, cfg.MODEL.COSFACE)) / 3
+            # loss_triplet = compute_triplet_loss([embed_feature1, embed_feature2, embed_feature3], margin=1)
+            # # loss_seq = compute_seq_loss(seq_features1, seq_features2)
+            # # loss = loss_triplet + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
+            # # loss = loss_triplet
+            # # loss = loss_cls
+            # loss = loss_triplet + loss_cls
+            # loss_triplet_per_epoch += loss_triplet.item()
+            # loss_cls_per_epoch += loss_cls.item()
+            #
+            # if (iter + 1) % 10 == 0:
+            #     logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Triplet Loss: {:.4f}, Cls Loss: {:.4f}, match dist: {:.4f}, unmatch dist: {:.4f}'
+            #       .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item(), loss_triplet, loss_cls, dist_m.mean(), dist_um.mean()))
 
 
             loss_per_epoch += loss.item()
+
 
             # pdb.set_trace()
 
@@ -177,20 +197,20 @@ def train():
                 nn.utils.clip_grad_norm_(model.parameters(), max_norm=cfg.TRAIN.GRAD_MAX_NORM, norm_type=2)
             optimizer.step()
 
-            if (iter + 1) % 10 == 0:
-                logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Triplet Loss: {:.4f}, Cls Loss: {:.4f}, match dist: {:.4f}, unmatch dist: {:.4f}'
-                  .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item(), loss_triplet, loss_cls, dist_m.mean(), dist_um.mean()))
+
 
             time_spot0 = time.time()
             # logger.info("Iter %d: Training costs %d" % (iter, time_spot0 - time_spot1))
 
         # Statistics per epoch
         loss_per_epoch /= (iter + 1)
+        loss_triplet_per_epoch /= (iter + 1)
+        loss_cls_per_epoch /= (iter + 1)
         dist_ms /= (iter + 1)
         dist_ums /= (iter + 1)
         accuracy = num_true_pred / (cfg.DATASET.NUM_SAMPLE * 2)
-        logger.info('Epoch [{}/{}], Accuracy: {:.4f}, Loss: {:.4f}, match dist: {:.4f}, unmatch dist: {:.4f}'
-                    .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch, dist_ms, dist_ums))
+        logger.info('Epoch [{}/{}], Accuracy: {:.4f}, Loss: {:.4f}, Triplet Loss: {:.4f}, Cls Loss: {:.4f}, match dist: {:.4f}, unmatch dist: {:.4f}'
+                    .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch, loss_triplet_per_epoch, loss_cls_per_epoch, dist_ms, dist_ums))
 
 
         # Learning rate decay
@@ -239,6 +259,7 @@ def parse_args():
     parser.add_argument('--config', default='configs/train_resnet_config.yml', help='config file path [default: configs/train_resnet_config.yml]')
     parser.add_argument('--save_path', default=None, help='path to save models and log [default: None]')
     parser.add_argument('--load_path', default=None, help='path to load the model [default: None]')
+    parser.add_argument('--log_name', default='train_log', help='log name')
 
 
     args = parser.parse_args()
@@ -275,7 +296,7 @@ if __name__ == "__main__":
     else:
         logger_path = 'temp_log'
 
-    logger = setup_logger("ActionVerification", logger_path, 'train_log.txt', 0)
+    logger = setup_logger("ActionVerification", logger_path, args.log_name, 0)
     logger.info("Running with config:\n{}\n".format(cfg))
 
 

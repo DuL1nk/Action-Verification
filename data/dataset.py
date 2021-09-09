@@ -51,7 +51,8 @@ class ActionVerificationDataset(data.Dataset):
                  num_clip=3,
                  len_clip=1,
                  augment=True,
-                 num_sample=600):
+                 num_sample=600,
+                 use_prefetch=False):
 
         # assert mode in ['train', 'test']
         self.mode = mode
@@ -66,6 +67,7 @@ class ActionVerificationDataset(data.Dataset):
             self.aug_color = True
             self.aug_rot = True
         self.num_sample = num_sample  # num of pairs randomly selected from all train pairs
+        self.use_prefetch = use_prefetch
 
         self.data_list = [line.strip() for line in open(txt_path, 'r').readlines()]
         self.indices = list(range(len(self.data_list)))
@@ -102,6 +104,32 @@ class ActionVerificationDataset(data.Dataset):
 
         if len(data_path_split) == 4:
             # train_pairs or test_pairs
+
+            if self.use_prefetch:
+                return index, \
+                       data_path, \
+                       self.sample_clips(data_path_split[0]), \
+                       self.sample_clips(data_path_split[2]), \
+                       LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1], \
+                       LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
+
+            # spot0 = time.time()
+            # tmp1 = self.sample_clips(data_path_split[0])
+            # spot1 = time.time()
+            # tmp2 = self.sample_clips(data_path_split[2])
+            # spot2 = time.time()
+            # tmp3 = LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+            # tmp4 = LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+            # print('Process imgs1 costs: ', spot1 - spot0)
+            # print('Process imgs2 costs: ', spot2 - spot1)
+            # pdb.set_trace()
+            #
+            # sample = {
+            #     'frames_list1': tmp1,
+            #     'frames_list2': tmp2,
+            #
+            # }
+
             sample = {
                 'index': index,
                 'data': data_path,
@@ -165,55 +193,48 @@ class ActionVerificationDataset(data.Dataset):
         # if '1.4/luoweixin' in dir_path:
         #     pdb.set_trace()
 
+        sampled_clips_list = []
+        sampled_clips = []
+        sampled_per_segment = 1 if self.mode == 'train' else 3
+
+
         if self.mode == 'train':
             # train mode
-            sampled_clips = []
-            for i in range(self.num_clip):
-                start_index = np.random.randint(segments[i], segments[i + 1])
-                frames = self.sample_frames(dir_path, start_index, self.augment, apply_normalization)
-                sampled_clips.append(frames.unsqueeze(-1))
-            sampled_clips = torch.cat(sampled_clips, dim=-1)
-            return sampled_clips
+            for j in range(sampled_per_segment):
+                # spot1 = time.time()
+                for i in range(self.num_clip):
+                    start_index = np.random.randint(segments[i], segments[i + 1])
+                    frames = self.sample_frames(dir_path, start_index)
+                    sampled_clips.append(frames)
+                # spot2 = time.time()
+                sampled_clips_list.append(self.preprocess_clips(sampled_clips))
+                # spot3 = time.time()
+                # print('Load img costs: ', spot2 - spot1)
+                # print('Process img costs: ', spot3 - spot2)
+                # print()
+
         elif self.mode == 'test' or self.mode == 'val':
             # test, val model
-            eval_per_segment = 3   # num of samples per segment while evaluating
-            sampled_clips_list = []
-            for j in range(eval_per_segment):
-                sampled_clips = []
+            for j in range(sampled_per_segment):
                 for i in range(self.num_clip):
                     start_index = segments[i] + int((segments[i+1]-segments[i])/4) * (j+1)
-                    frames = self.sample_frames(dir_path, start_index, self.augment, apply_normalization)
-                    sampled_clips.append(frames.unsqueeze(-1))
-                sampled_clips = torch.cat(sampled_clips, dim=-1)
-                sampled_clips_list.append(sampled_clips)
-            # sampled_clips_list = torch.cat(sampled_clips_list, dim=-1)
-            return sampled_clips_list
+                    frames = self.sample_frames(dir_path, start_index)
+                    sampled_clips.append(frames)
+                sampled_clips_list.append(self.preprocess_clips(sampled_clips))
         else:
             logger.info('*** WRONG dataset mode, please check again! ***')
             exit(-1)
 
+        return sampled_clips_list
 
-    def sample_pretrain_clips(self, dir_path):
-        pass
+    def preprocess_clips(self, clips, apply_normalization=True):
+        # Apply augmentation and normalization on a clip of frames
 
-
-    def sample_frames(self, data_path, start_index, augment, apply_normalization=True):
-        sampled_frames = []
-        for i in range(self.len_clip):
-            frame_index = start_index + i
-            frame_path = os.path.join(data_path, str(frame_index + 1) + '.jpg')
-            # print('Loading from:', frame_path)
-            try:
-                frame = Image.open(frame_path)
-            except:
-                logger.info('Wrong image path %s' % frame_path)
-                # print(('Wrong image path %s' % frame_path))
-                pdb.set_trace()
-            sampled_frames.append(frame)
+        # pdb.set_trace()
 
         # Data augmentation on the clip
         transforms = []
-        if augment:
+        if self.augment:
             # if self.seed != None:
             #     np.random.seed(self.seed)
 
@@ -245,14 +266,40 @@ class ActionVerificationDataset(data.Dataset):
 
         transforms = tf.Compose(transforms)
 
-        for i in range(len(sampled_frames)):
-            sampled_frames[i] = transforms(sampled_frames[i])
 
-        # Concat all sampled frames
-        for i in range(len(sampled_frames)):
-            sampled_frames[i] = sampled_frames[i].unsqueeze(-1)
+        clips = torch.cat([torch.cat([transforms(frame).unsqueeze(-1) for frame in clip], dim=-1).unsqueeze(-1) for clip in clips], dim=-1)
 
-        sampled_frames = torch.cat(sampled_frames, dim=-1)
+
+        return clips
+
+
+
+    def sample_pretrain_clips(self, dir_path):
+        pass
+
+
+    def sample_frames(self, data_path, start_index):
+        sampled_frames = []
+
+        spot1 = time.time()
+        for i in range(self.len_clip):
+            frame_index = start_index + i
+            frame_path = os.path.join(data_path, str(frame_index + 1) + '.jpg')
+            # print('Loading from:', frame_path)
+            try:
+                # PIL read
+                frame = Image.open(frame_path)
+
+                # Opencv read
+                frame = cv2.imread(frame_path)
+                # Convert RGB to BGR and transform to PIL.Image
+                frame = Image.fromarray(frame[:,:,[2,1,0]])
+
+                sampled_frames.append(frame)
+            except:
+                logger.info('Wrong image path %s' % frame_path)
+                # print(('Wrong image path %s' % frame_path))
+                pdb.set_trace()
 
         return sampled_frames
 
@@ -289,7 +336,8 @@ def load_dataset(cfg):
                                   num_clip=cfg.DATASET.NUM_CLIP,
                                   len_clip=cfg.DATASET.LEN_CLIP,
                                   augment=cfg.DATASET.AUGMENT,
-                                  num_sample=cfg.DATASET.NUM_SAMPLE)
+                                  num_sample=cfg.DATASET.NUM_SAMPLE,
+                                  use_prefetch=cfg.TRAIN.PREFETCH)
 
     sampler = TestSampler(dataset, cfg.DATASET.TXT_PATH, cfg.DATASET.SHUFFLE)
 
