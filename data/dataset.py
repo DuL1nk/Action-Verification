@@ -13,6 +13,7 @@ from data.label import LABELS
 from torch.utils.data.sampler import Sampler
 
 from torchvision import transforms as tf
+import tensorflow as tf
 
 logger = logging.getLogger('ActionVerification')
 # All actions are divided to 3 batches, corresponding to action_ids[0], action_ids[1], action_ids[2]
@@ -105,31 +106,6 @@ class ActionVerificationDataset(data.Dataset):
         if len(data_path_split) == 4:
             # train_pairs or test_pairs
 
-            if self.use_prefetch:
-                return index, \
-                       data_path, \
-                       self.sample_clips(data_path_split[0]), \
-                       self.sample_clips(data_path_split[2]), \
-                       LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1], \
-                       LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
-
-            # spot0 = time.time()
-            # tmp1 = self.sample_clips(data_path_split[0])
-            # spot1 = time.time()
-            # tmp2 = self.sample_clips(data_path_split[2])
-            # spot2 = time.time()
-            # tmp3 = LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
-            # tmp4 = LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
-            # print('Process imgs1 costs: ', spot1 - spot0)
-            # print('Process imgs2 costs: ', spot2 - spot1)
-            # pdb.set_trace()
-            #
-            # sample = {
-            #     'frames_list1': tmp1,
-            #     'frames_list2': tmp2,
-            #
-            # }
-
             sample = {
                 'index': index,
                 'data': data_path,
@@ -181,6 +157,26 @@ class ActionVerificationDataset(data.Dataset):
         else:
             return len(self.data_list)
 
+    def sample_tfrecords(self, tfrecord_path):
+        # from data.tfrecord_utils import get_example_nums, read_records
+        #
+        # temp = tfrecord_path.split('/')
+        # temp[4] += '_tfrecord'
+        # temp.append(temp[-1] + '.tfrecord')
+        # tfrecord_path = ''
+        # for tmp in temp: tfrecord_path += tmp + '/'
+        # tfrecord_path = tfrecord_path[:-1]
+        #
+        # # pdb.set_trace()
+        #
+        # segments = np.linspace(0, get_example_nums(tfrecord_path) - self.len_clip - 1, self.num_clip + 1, dtype=int)
+        # start_indices = [np.random.randint(segments[i], segments[i + 1]) for i in range(self.num_clip)]
+        # sampled_clips = read_records(tfrecord_path, start_indices)
+        #
+        # return sampled_clips
+
+        return NotImplementedError
+
 
     def sample_clips(self, dir_path, apply_normalization=True):
         all_frames = os.listdir(dir_path)
@@ -201,14 +197,11 @@ class ActionVerificationDataset(data.Dataset):
         if self.mode == 'train':
             # train mode
             for j in range(sampled_per_segment):
-                # spot1 = time.time()
                 for i in range(self.num_clip):
                     start_index = np.random.randint(segments[i], segments[i + 1])
                     frames = self.sample_frames(dir_path, start_index)
                     sampled_clips.append(frames)
-                # spot2 = time.time()
                 sampled_clips_list.append(self.preprocess_clips(sampled_clips))
-                # spot3 = time.time()
                 # print('Load img costs: ', spot2 - spot1)
                 # print('Process img costs: ', spot3 - spot2)
                 # print()
@@ -228,6 +221,7 @@ class ActionVerificationDataset(data.Dataset):
         return sampled_clips_list
 
     def preprocess_clips(self, clips, apply_normalization=True):
+
         # Apply augmentation and normalization on a clip of frames
 
         # pdb.set_trace()
@@ -281,19 +275,24 @@ class ActionVerificationDataset(data.Dataset):
     def sample_frames(self, data_path, start_index):
         sampled_frames = []
 
-        spot1 = time.time()
         for i in range(self.len_clip):
             frame_index = start_index + i
             frame_path = os.path.join(data_path, str(frame_index + 1) + '.jpg')
             # print('Loading from:', frame_path)
             try:
                 # PIL read
-                frame = Image.open(frame_path)
+                # frame = Image.open(frame_path)
 
                 # Opencv read
                 frame = cv2.imread(frame_path)
                 # Convert RGB to BGR and transform to PIL.Image
                 frame = Image.fromarray(frame[:,:,[2,1,0]])
+
+
+
+                # tfrecord read
+
+
 
                 sampled_frames.append(frame)
             except:
