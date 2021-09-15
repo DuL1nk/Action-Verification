@@ -13,7 +13,7 @@ from data.label import LABELS
 from torch.utils.data.sampler import Sampler
 
 from torchvision import transforms as tf
-import tensorflow as tf
+# import tensorflow as tf
 
 logger = logging.getLogger('ActionVerification')
 # All actions are divided to 3 batches, corresponding to action_ids[0], action_ids[1], action_ids[2]
@@ -190,13 +190,14 @@ class ActionVerificationDataset(data.Dataset):
         #     pdb.set_trace()
 
         sampled_clips_list = []
-        sampled_clips = []
+
         sampled_per_segment = 1 if self.mode == 'train' else 3
 
 
         if self.mode == 'train':
             # train mode
             for j in range(sampled_per_segment):
+                sampled_clips = []
                 for i in range(self.num_clip):
                     start_index = np.random.randint(segments[i], segments[i + 1])
                     frames = self.sample_frames(dir_path, start_index)
@@ -209,6 +210,7 @@ class ActionVerificationDataset(data.Dataset):
         elif self.mode == 'test' or self.mode == 'val':
             # test, val model
             for j in range(sampled_per_segment):
+                sampled_clips = []
                 for i in range(self.num_clip):
                     start_index = segments[i] + int((segments[i+1]-segments[i])/4) * (j+1)
                     frames = self.sample_frames(dir_path, start_index)

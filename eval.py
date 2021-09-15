@@ -16,12 +16,13 @@ from data.dataset import load_dataset
 import pdb
 import time
 
-from sklearn.metrics import auc
-from sklearn.metrics import roc_curve
+from sklearn.metrics import auc, roc_curve
 
 from tqdm import tqdm
 import numpy as np
 from data.label import LABELS
+
+
 
 def compute_auc(model, dist='L2'):
 
@@ -38,7 +39,22 @@ def compute_auc(model, dist='L2'):
 
     # auc metric
     model.eval()
+
+
+
+
+
+
+
+
+
+
+
     with torch.no_grad():
+
+
+
+
 
         for iter, sample in enumerate(tqdm(test_loader)):
 
@@ -54,45 +70,50 @@ def compute_auc(model, dist='L2'):
             labels2 = sample['label2']
             label = torch.tensor(np.array(labels1) == np.array(labels2)).to(device)
 
-            pred1 = 0
-            pred2 = 0
-            num_true_pred = 0
+            pred1s = []
+            pred2s = []
+            # num_true_pred = 0
             # pdb.set_trace()
             for i in range(len(frames_list1)):
 
                 frames1 = frames_preprocess(frames_list1[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
                 frames2 = frames_preprocess(frames_list2[i], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
 
-                # pred1, seq_features1 = model(frames1)
-                # pred2, seq_features2 = model(frames2)
+                # pdb.set_trace()
+                tmp1, seq_features1, pred1 = model(frames1)
+                tmp2, seq_features2, pred2 = model(frames2)
+
+                # true_labels1 = torch.tensor([LABELS['COIN']['train'].index(label_str) for label_str in labels1]).to(device)
+                # true_labels2 = torch.tensor([LABELS['COIN']['train'].index(label_str) for label_str in labels2]).to(device)
                 #
-                # labels1_idx = [LABELS['COIN']['train'].index(label_str) for label_str in labels1]
-                # labels2_idx = [LABELS['COIN']['train'].index(label_str) for label_str in labels2]
+                # pred_labels1 = torch.argmax(tmp1, dim=-1)
+                # pred_labels2 = torch.argmax(tmp2, dim=-1)
+                # num_true_pred = torch.sum(pred_labels1 == true_labels1) + torch.sum(pred_labels2 == true_labels2)
+                # print('Accuracy: %4f' % (num_true_pred / (len(true_labels1) + len(true_labels2))))
+                # # pdb.set_trace()
                 #
-                # pred_labels1 = torch.argmax(pred1, dim=-1)
-                # pred_labels2 = torch.argmax(pred2, dim=-1)
-                # num_true_pred += torch.sum(pred_labels1 == labels1_idx) + torch.sum(pred_labels2 == labels2_idx)
+                # pred1 = model(frames1, embed=True)
+                # pred2 = model(frames2, embed=True)
+                #
+                # distance = torch.sum((pred1 - pred2) ** 2, dim=1)
 
+                pred1s.append(pred1)
+                pred2s.append(pred2)
 
-                pred1 += model(frames1, embed=True)
-                pred2 += model(frames2, embed=True)
-
-
-
-
+                # pdb.set_trace()
 
             # pdb.set_trace()
 
-            pred1 /= len(frames_list1)
-            pred2 /= len(frames_list1)
+            pred1s = np.sum(pred1s) / len(pred1s)
+            pred2s = np.sum(pred2s) / len(pred2s)
 
             # L1 distance
             if dist == 'L1':
-                pred = torch.sum(torch.abs(pred1 - pred2), dim=1)
+                pred = torch.sum(torch.abs(pred1s - pred2s), dim=1)
 
             # L2 distance
             if dist == 'L2':
-                pred = torch.sum((pred1 - pred2) ** 2, dim=1)
+                pred = torch.sum((pred1s - pred2s) ** 2, dim=1)
 
             if iter == 0:
                 preds = pred
@@ -100,6 +121,8 @@ def compute_auc(model, dist='L2'):
             else:
                 preds = torch.cat([preds, pred])
                 labels = torch.cat([labels, label])
+
+            # pdb.set_trace()
 
     # print('min is', torch.min(preds))
     # print('mean is', torch.mean(preds))
@@ -252,5 +275,6 @@ if __name__ == "__main__":
 
 
     test_loader = load_dataset(cfg)
+
 
     eval()
