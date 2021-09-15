@@ -51,10 +51,15 @@ def train():
         optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
+        # optimizer = torch.optim.SGD(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
+
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.DECAY_EPOCHS, gamma=cfg.TRAIN.DECAY_RATE)
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 45, 50], gamma=0.1)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.TRAIN.MAX_EPOCH, eta_min=cfg.TRAIN.LR*0.01)
+
 
     start_epoch = 0
-
-
     # Load checkpoint
     if args.load_path and os.path.isfile(args.load_path):
         checkpoint = torch.load(args.load_path)
@@ -209,16 +214,8 @@ def train():
         dist_ms /= (iter + 1)
         dist_ums /= (iter + 1)
         accuracy = num_true_pred / (cfg.DATASET.NUM_SAMPLE * 2)
-        logger.info('Epoch [{}/{}], Accuracy: {:.4f}, Loss: {:.4f}, Triplet Loss: {:.4f}, Cls Loss: {:.4f}, match dist: {:.4f}, unmatch dist: {:.4f}'
-                    .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch, loss_triplet_per_epoch, loss_cls_per_epoch, dist_ms, dist_ums))
-
-
-        # Learning rate decay
-        if ((epoch + 1) % cfg.TRAIN.DECAY_EPOCHS == 0):
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * cfg.TRAIN.DECAY_RATE
-                logger.info('Epoch: %d, change lr to %.6f' % (epoch + 1, param_group['lr']))
-
+        logger.info('Epoch [{}/{}], LR: {.6f}, Accuracy: {:.4f}, Loss: {:.4f}'
+                    .format(epoch + 1, optimizer.param_groups[0]['lr'], cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch))
 
 
         # Save checkpoint
@@ -241,6 +238,11 @@ def train():
                 save_name = 'epoch_' + str(epoch+1) + '.tar'
                 torch.save(save_dict, os.path.join(checkpoint_dir, save_name))
                 logger.info('Save ' + os.path.join(checkpoint_dir, save_name) + ' done!')
+
+        # pdb.set_trace()
+
+        # Learning rate decay
+        scheduler.step()
 
     end_time = time.time()
     duration = end_time - start_time
