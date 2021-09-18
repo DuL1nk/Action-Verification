@@ -20,6 +20,8 @@ import numpy as np
 import time
 import random
 
+from data.label import LABELS
+
 
 def train():
 
@@ -53,8 +55,8 @@ def train():
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
         # optimizer = torch.optim.SGD(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
 
-    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.DECAY_EPOCHS, gamma=cfg.TRAIN.DECAY_RATE)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.DECAY_EPOCHS, gamma=cfg.TRAIN.DECAY_RATE)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 45, 50], gamma=0.1)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.TRAIN.MAX_EPOCH, eta_min=cfg.TRAIN.LR*0.01)
 
@@ -120,29 +122,36 @@ def train():
             # *** 1. Classification Training ***
             frames1 = frames_preprocess(sample['frames_list1'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
             frames2 = frames_preprocess(sample['frames_list2'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            labels1 = sample['label1'].to(device, non_blocking=True)
-            labels2 = sample['label2'].to(device, non_blocking=True)
+            labels1 = sample['label1']
+            labels2 = sample['label2']
 
-            pred1, seq_features1, embed_feature1 = model(frames1)
-            pred2, seq_features2, embed_feature2 = model(frames2)
+            labels_seq1 = torch.tensor([LABELS['COIN']['train'].index(temp) for temp in labels1]).to(device, non_blocking=True)
+            labels_seq2 = torch.tensor([LABELS['COIN']['train'].index(temp) for temp in labels2]).to(device, non_blocking=True)
+            labels_task1 = torch.tensor([int(temp.split('.')[0]) for temp in labels1]).to(device, non_blocking=True)
+            labels_task2 = torch.tensor([int(temp.split('.')[0]) for temp in labels2]).to(device, non_blocking=True)
+            # pdb.set_trace()
 
-            pred_labels1 = torch.argmax(pred1, dim=-1)
-            pred_labels2 = torch.argmax(pred2, dim=-1)
-            num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2)
+            seq_cls1, task_cls1, seq_features1, embed_feature1 = model(frames1)
+            seq_cls2, task_cls2, seq_features2, embed_feature2 = model(frames2)
+
+            pred_labels1 = torch.argmax(seq_cls1, dim=-1)
+            pred_labels2 = torch.argmax(seq_cls2, dim=-1)
+            num_true_pred += torch.sum(pred_labels1 == labels_seq1) + torch.sum(pred_labels2 == labels_seq2)
 
 
             # Compute loss
-            loss_cls = compute_cls_loss(pred1, labels1, cfg.MODEL.COSFACE) + compute_cls_loss(pred2, labels2, cfg.MODEL.COSFACE)
+            loss_cls_seq = compute_cls_loss(seq_cls1, labels_seq1, cfg.MODEL.COSFACE) + compute_cls_loss(seq_cls2, labels_seq2, cfg.MODEL.COSFACE)
+            loss_cls_task = compute_cls_loss(task_cls1, labels_task1, cfg.MODEL.COSFACE) + compute_cls_loss(task_cls2, labels_task2, cfg.MODEL.COSFACE)
             loss_seq = compute_seq_loss(seq_features1, seq_features2)
             if cfg.MODEL.NORM_LOSS_COEF:
                 loss_norm = compute_norm_loss(embed_feature1) + compute_norm_loss(embed_feature2)
-                loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq + cfg.MODEL.NORM_LOSS_COEF * loss_norm
+                loss = loss_cls_seq + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq + cfg.MODEL.NORM_LOSS_COEF * loss_norm
             else:
-                loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
+                loss = loss_cls_seq + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
 
             if (iter + 1) % 10 == 0:
-                logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Cls Loss: {:.4f}'
-                  .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item(), loss_cls))
+                logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+                  .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item()))
 
 
             # *** 2. Triplet Training ***
@@ -214,8 +223,8 @@ def train():
         dist_ms /= (iter + 1)
         dist_ums /= (iter + 1)
         accuracy = num_true_pred / (cfg.DATASET.NUM_SAMPLE * 2)
-        logger.info('Epoch [{}/{}], LR: {.6f}, Accuracy: {:.4f}, Loss: {:.4f}'
-                    .format(epoch + 1, optimizer.param_groups[0]['lr'], cfg.TRAIN.MAX_EPOCH, accuracy, loss_per_epoch))
+        logger.info('Epoch [{}/{}], LR: {:.6f}, Accuracy: {:.4f}, Loss: {:.4f}'
+                    .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, optimizer.param_groups[0]['lr'], accuracy, loss_per_epoch))
 
 
         # Save checkpoint
