@@ -55,10 +55,10 @@ def train():
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
         # optimizer = torch.optim.SGD(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
 
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.DECAY_EPOCHS, gamma=cfg.TRAIN.DECAY_RATE)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 45, 50], gamma=0.1)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.TRAIN.MAX_EPOCH, eta_min=cfg.TRAIN.LR*0.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.TRAIN.MAX_EPOCH, eta_min=cfg.TRAIN.LR*0.01)
 
 
     start_epoch = 0
@@ -79,6 +79,27 @@ def train():
     # pdb.set_trace()
     start_time = time.time()
     flag = False
+    if cfg.TRAIN.USE_ISDA:
+        from utils.ISDA import ISDALoss
+
+        class Full_layer(torch.nn.Module):
+            '''explicitly define the full connected layer'''
+
+            def __init__(self, feature_num, class_num):
+                super(Full_layer, self).__init__()
+                self.class_num = class_num
+                self.fc = nn.Linear(feature_num, class_num)
+
+            def forward(self, x):
+                x = self.fc(x)
+                return x
+
+        fc = Full_layer(cfg.MODEL.DIM_EMBEDDING, cfg.DATASET.NUM_CLASS).cuda()
+
+        isda_criterion = ISDALoss(cfg.MODEL.DIM_EMBEDDING, cfg.DATASET.NUM_CLASS).cuda()
+        optimizer = torch.optim.Adam([{'params': model.parameters()}, {'params': fc.parameters()}], lr=cfg.TRAIN.LR, weight_decay=0.01)
+
+
     # Start training
     for epoch in range(start_epoch, cfg.TRAIN.MAX_EPOCH):
 
@@ -115,7 +136,7 @@ def train():
             # time_spot1 = time.time()
             # # print('Epoch [{}/{}], Step [{}/{}]'.format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader)))
             # logger.info("Iter %d: Loading data costs %d" % (iter, time_spot1 - time_spot0))
-            # # pdb.set_trace()
+            # pdb.set_trace()
             # time_spot0 = time.time()
             # continue
 
@@ -140,14 +161,20 @@ def train():
 
 
             # Compute loss
-            loss_cls_seq = compute_cls_loss(seq_cls1, labels_seq1, cfg.MODEL.COSFACE) + compute_cls_loss(seq_cls2, labels_seq2, cfg.MODEL.COSFACE)
+            if cfg.TRAIN.USE_ISDA:
+                ratio = 1 * ((epoch + 1) / cfg.TRAIN.MAX_EPOCH)
+                seq_cls1, isda_seq_cls1 = isda_criterion(embed_feature1, fc, frames1, labels_seq1, ratio)
+                seq_cls2, isda_seq_cls2 = isda_criterion(embed_feature2, fc, frames2, labels_seq2, ratio)
+                loss_cls_seq = compute_cls_loss(isda_seq_cls1, labels_seq1, cfg.MODEL.COSFACE) + \
+                               compute_cls_loss(isda_seq_cls2, labels_seq2, cfg.MODEL.COSFACE)
+                pdb.set_trace()
+            else:
+                loss_cls_seq = compute_cls_loss(seq_cls1, labels_seq1, cfg.MODEL.COSFACE) + compute_cls_loss(seq_cls2, labels_seq2, cfg.MODEL.COSFACE)
             loss_cls_task = compute_cls_loss(task_cls1, labels_task1, cfg.MODEL.COSFACE) + compute_cls_loss(task_cls2, labels_task2, cfg.MODEL.COSFACE)
             loss_seq = compute_seq_loss(seq_features1, seq_features2)
-            if cfg.MODEL.NORM_LOSS_COEF:
-                loss_norm = compute_norm_loss(embed_feature1) + compute_norm_loss(embed_feature2)
-                loss = loss_cls_seq + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq + cfg.MODEL.NORM_LOSS_COEF * loss_norm
-            else:
-                loss = loss_cls_seq + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
+
+            loss = loss_cls_seq + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
+            # loss = loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
 
             if (iter + 1) % 10 == 0:
                 logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'

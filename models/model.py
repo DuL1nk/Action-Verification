@@ -76,8 +76,10 @@ class CAT(nn.Module):
             self.temporal_mix_conv = nn.Conv1d(num_clip, 1, 1)
 
         self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(dim_embedding, num_class, bias=False) if use_CosFace else nn.Linear(dim_embedding, num_class)
 
+        self.fc = nn.Linear(dim_embedding, num_class, bias=False) if use_CosFace else nn.Linear(dim_embedding, num_class)
+        self.task_fc = nn.Linear(dim_embedding, 180, bias=False)
+        self.seq_fc = nn.Linear(dim_embedding, num_class, bias=False)
 
 
     def train(self, mode=True):
@@ -177,18 +179,19 @@ class CAT(nn.Module):
             x = F.normalize(x, p=2, dim=1)
 
         x = self.dropout(x)
-        x = self.fc(x)
-
-        # if not self.use_CosFace:
-        #     # Softmax loss
-        #     x = F.softmax(x, dim=1)
+        # return self.fc(x), seq_features, embed_feature
 
 
+        seq_cls = self.seq_fc(x)
+        task_cls = self.task_fc(x)
 
 
 
 
-        return x, seq_features, embed_feature
+
+
+
+        return seq_cls, task_cls, seq_features, embed_feature
 
 
 

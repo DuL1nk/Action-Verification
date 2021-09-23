@@ -15,13 +15,15 @@ _C.TRAIN.DECAY_EPOCHS = 40
 _C.TRAIN.DECAY_RATE = 0.1
 _C.TRAIN.BATCH_SIZE = 16
 _C.TRAIN.LR = 0.0001
-_C.TRAIN.DROPOUT = 0
+_C.TRAIN.DROPOUT = 0.0
 _C.TRAIN.SAVE_PATH = None
 _C.TRAIN.GRAD_MAX_NORM = None
 _C.TRAIN.USE_ADAMW = False
 _C.TRAIN.FIX_VIT_PROJECTION = False
 _C.TRAIN.PARTIAL_BN = False     # Freeze BatchNorm2D except the first layer in backbone
 _C.TRAIN.FREEZE_BACKBONE = False
+_C.TRAIN.PREFETCH = False
+_C.TRAIN.USE_ISDA = False
 
 # Model configuration
 _C.MODEL = CN()
