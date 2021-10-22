@@ -111,9 +111,10 @@ class ActionVerificationDataset(data.Dataset):
                 'data': data_path,
                 'frames_list1': self.sample_clips(data_path_split[0]),
                 'frames_list2': self.sample_clips(data_path_split[2]),
-                # 'raw_frames_list1': self.sample_clips(data_path_split[0], False),
-                'label1': data_path_split[1],
-                'label2': data_path_split[3],
+                # 'label1': LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+                # 'label2': LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
+                'label1': LABELS['DIVING48_S1'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+                'label2': LABELS['DIVING48_S1'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3]
                 # 'path1': data_path_split[2],
                 # 'path2': data_path_split[3],
                 # 'label1': data_path_split[1],

@@ -22,7 +22,8 @@ TRUNCATE_DIM = {'resnet18': 512,
                 'vgg': 512,
                 'tsn': 1024,
                 'tsm': 1024,
-                'trn': 1024}
+                'trn': 1024,
+                'swin': 768}
 
 
 logger = logging.getLogger('ActionVerification')
@@ -92,6 +93,7 @@ class builder:
                     fix_embedding=self.fix_ViT_projection
                 )
 
+
         elif self.backbone_model == 'c3d':
             backbone = C3D(pretrain=self.pretrain,
                            dim_embedding=self.dim_embedding,
@@ -127,6 +129,20 @@ class builder:
                            pretrain=self.pretrain)
         elif self.backbone_model == 'tea':
             pass
+        elif self.backbone_model == 'swin':
+            from mmcv import Config
+            from mmaction.models import build_model
+            import torch
+
+            config_file = 'models/swin/configs/swin_tiny.py'
+            cfg = Config.fromfile(config_file)
+            backbone = build_model(cfg.model)
+
+            # pdb.set_trace()
+            state_dict = torch.load(self.pretrain)['state_dict']
+            # backbone.load_state_dict(state_dict)
+            backbone.load_state_dict({k: v for k, v in state_dict.items() if k in backbone.state_dict() and k[9:11] != 'fc'}, strict=False)
+            logger.info('Loading backbone state_dict from %s' % self.pretrain)
 
         else:
             logger.info('Not support models %s' % self.backbone_model)
@@ -208,13 +224,14 @@ class builder:
 
     def build_seq_features_extractor(self):
 
+        num_clip = int(self.num_clip / 2) if self.base_model == 'swin' else self.num_clip
         # raw-sa for resnet backbone
-        # return nn.Sequential(
-        #     nn.AdaptiveAvgPool2d((1, 1)),
-        #     nn.Flatten(),
-        #     Reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])
-        #     # nn.Linear(TRUNCATE_DIM[self.base_model], 1024)
-        # )
+        return nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            Reshape(-1, num_clip, TRUNCATE_DIM[self.base_model])
+            # nn.Linear(TRUNCATE_DIM[self.base_model], 1024)
+        )
 
         # raw-sa for vit backbone
         # return Reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])

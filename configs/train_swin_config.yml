@@ -1,0 +1,71 @@
+TRAIN:
+  USE_CUDA: True
+  MAX_EPOCH: 60
+  DECAY_EPOCHS: 30
+  DECAY_RATE: 0.1
+  BATCH_SIZE: 16
+  LR: 0.001
+  DROPOUT: 0.0
+  PARTIAL_BN: False
+  FREEZE_BACKBONE: False
+  USE_ISDA: False
+#  PREFETCH: True
+  SEED: 1234
+#  GRAD_MAX_NORM: 10
+#  USE_ADAMW: True
+#  FIX_VIT_PROJECTION: True
+#  SAVE_PATH: 'logs/test'
+#  SAVE_PATH: 'logs/resnet50+vit_img-pre_lr0.001_new-sampler'
+
+#  SAVE_PATH: 'coin_logs/resnet50-kin_lr0.0001_s2'
+#  SAVE_PATH: 'coin_logs/test'
+
+  SAVE_PATH: 'diving_logs/swin_lr0.001_s1'
+#  SAVE_PATH: 'diving_logs/test'
+
+MODEL:
+  BACKBONE: 'swin'
+  BACKBONE_DIM: '3D'
+  BASE_MODEL: 'swin'
+  PRETRAIN: 'pretrained_models/swin_tiny_patch244_window877_kinetics400_1k.pth'
+  DIM_EMBEDDING: 128
+#  TRANSFORMER: True
+#  ALIGNMENT: True
+#  SEQ_LOSS_COEF: 0.1
+#  NORM_LOSS_COEF: 0.01
+#  COSFACE: True
+  SAVE_EPOCHS: 1
+
+
+
+DATASET:
+  MODE: 'train'
+#  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
+#  NUM_CLASS: 45
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all.txt'
+#  NUM_CLASS: 330
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all1.txt'
+#  NUM_CLASS: 72
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all2.txt'
+#  NUM_CLASS: 37
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_triplet.txt'
+#  NUM_CLASS: 1396
+
+  TXT_PATH: '/p300/dataset/Diving48/splits/train_all1.txt'
+  NUM_CLASS: 20
+
+
+
+  NUM_SAMPLE: 1600
+  NUM_CLIP: 16
+  LEN_CLIP: 1
+  SHUFFLE: True
+  NUM_WORKERS: 4
+
+
+
+

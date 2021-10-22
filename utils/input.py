@@ -18,10 +18,12 @@ def frames_preprocess(frames, model_dim, model_name):
         frames = frames.permute(0, 5, 1, 2, 3, 4)
         frames = frames.reshape(-1, c, h, w, len_clip)
     elif model_dim == '3D':
+        # pdb.set_trace()
         assert len_clip == 1, 'Expect len_clip = 1 for 3D backbone, but get %d instead' % len_clip
         frames = frames.squeeze()
-        if model_name == 'c3d' or model_name == 'i3d':
-            frames = frames.permute(0, 1, 4, 2, 3)
+        # if model_name == 'c3d' or model_name == 'i3d' or model_name == 'swin':
+        frames = frames.permute(0, 1, 4, 2, 3)
+
 
 
     return frames

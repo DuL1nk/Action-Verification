@@ -63,9 +63,14 @@ class CAT(nn.Module):
 
         self.backbone = model_builder.build_backbone()
 
+        if self.backbone_model == 'swin':
+            self.swin_head = self.backbone.cls_head
+            self.backbone = self.backbone.backbone
+
+        if use_SeqAlign:
+            self.seq_features_extractor = model_builder.build_seq_features_extractor()
+
         if self.backbone_model == 'cat':
-            if use_SeqAlign:
-                self.seq_features_extractor = model_builder.build_seq_features_extractor()
             if use_ViT:
                 # self.vit1, self.vit2 = model_builder.build_2vit()
                 self.vit = model_builder.build_vit()
@@ -78,8 +83,6 @@ class CAT(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         self.fc = nn.Linear(dim_embedding, num_class, bias=False) if use_CosFace else nn.Linear(dim_embedding, num_class)
-        self.task_fc = nn.Linear(dim_embedding, 180, bias=False)
-        self.seq_fc = nn.Linear(dim_embedding, num_class, bias=False)
 
 
     def train(self, mode=True):
@@ -120,14 +123,16 @@ class CAT(nn.Module):
 
         x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
         # return x
+        if self.use_SeqAlign:
+            # print('*** sa-vit ***')
+            seq_features = self.seq_features_extractor(x)
+        if self.backbone_model == 'swin':
+            x = self.swin_head(x)
+
 
 
 
         if self.backbone_model == 'cat':
-
-            if self.use_SeqAlign:
-                # print('*** sa-vit ***')
-                seq_features = self.seq_features_extractor(x)
 
             if self.use_ViT:
 
@@ -159,6 +164,7 @@ class CAT(nn.Module):
                     x = x.flatten(1)        # [bs * num_clip, 512]
                 x = x.reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])    # [bs, num_clip, dim_feature]
 
+
             # x: [bs, num_clip, dim_feature]
             x = self.temporal_mix_conv(x)
             x = x.squeeze(1)
@@ -179,19 +185,11 @@ class CAT(nn.Module):
             x = F.normalize(x, p=2, dim=1)
 
         x = self.dropout(x)
-        # return self.fc(x), seq_features, embed_feature
+        x = self.fc(x)
+
+        return x, seq_features, embed_feature
 
 
-        seq_cls = self.seq_fc(x)
-        task_cls = self.task_fc(x)
-
-
-
-
-
-
-
-        return seq_cls, task_cls, seq_features, embed_feature
 
 
 
