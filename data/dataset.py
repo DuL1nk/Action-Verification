@@ -16,30 +16,7 @@ from torchvision import transforms as tf
 # import tensorflow as tf
 
 logger = logging.getLogger('ActionVerification')
-# All actions are divided to 3 batches, corresponding to action_ids[0], action_ids[1], action_ids[2]
-# Each batch of videos are performed by the same group of people
-action_ids = [['1.1', '1.2', '1.3', '1.4', '1.5',
-               '2.1', '2.2', '2.3', '2.4', '2.5',
-               '3.1', '3.2', '3.3', '3.4', '3.5',
-               '4.1', '4.2', '4.3', '4.4', '4.5',
-               '5.1', '5.2', '5.3', '5.4', '5.5'],
-              ['7.1', '7.2', '7.3', '7.4', '7.5',
-               '8.1', '8.2', '8.3', '8.4', '8.5',
-               '9.1', '9.2', '9.3', '9.4', '9.5',
-               '10.1', '10.2', '10.3', '10.4', '10.5'],
-              ['11.1', '11.2', '11.3', '11.4', '11.5',
-               '12.1', '12.2', '12.3', '12.4', '12.5',
-               '13.1', '13.2', '13.3', '13.4', '13.5',
-               '14.1', '14.2', '14.3', '14.4', '14.5',
-               '15.1', '15.2', '15.3', '15.4', '15.5']]
 
-action_ids_bank = {'all': action_ids[0] + action_ids[1] + action_ids[2],
-                   'train': action_ids[1] + action_ids[2],
-                   'test': action_ids[0],
-                   # 'test': action_ids[0] +
-                   #             ['12.1', '12.2', '12.3', '12.4', '12.5'] +
-                   #             ['14.1', '14.2', '14.3', '14.4', '14.5'],
-                   'train_old': action_ids[0]}
 
 
 
@@ -111,10 +88,12 @@ class ActionVerificationDataset(data.Dataset):
                 'data': data_path,
                 'frames_list1': self.sample_clips(data_path_split[0]),
                 'frames_list2': self.sample_clips(data_path_split[2]),
-                # 'label1': LABELS['COIN'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
-                # 'label2': LABELS['COIN'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
-                'label1': LABELS['DIVING48_S1'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
-                'label2': LABELS['DIVING48_S1'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3]
+                # 'label1': LABELS['CV'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+                # 'label2': LABELS['CV'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
+                'label1': LABELS['COIN_S2'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+                'label2': LABELS['COIN_S2'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3],
+                # 'label1': LABELS['DIVING48_S1'][self.mode].index(data_path_split[1]) if self.mode == 'train' else data_path_split[1],
+                # 'label2': LABELS['DIVING48_S1'][self.mode].index(data_path_split[3]) if self.mode == 'train' else data_path_split[3]
                 # 'path1': data_path_split[2],
                 # 'path2': data_path_split[3],
                 # 'label1': data_path_split[1],

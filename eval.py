@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 import os
 import argparse
@@ -6,7 +7,7 @@ from configs.defaults import get_cfg_defaults
 
 from utils.logger import setup_logger
 from utils.input import frames_preprocess
-from utils.visualization import vis_embedding
+# from utils.visualization import vis_embedding
 
 from models.model import CAT
 from train import setup_seed
@@ -21,10 +22,11 @@ from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm
 import numpy as np
 from data.label import LABELS
+import xlwt
 
 
 
-def compute_auc(model, dist='L2'):
+def compute_auc(model, dist='NormL2'):
 
     # pdb.set_trace()
 
@@ -42,19 +44,7 @@ def compute_auc(model, dist='L2'):
 
 
 
-
-
-
-
-
-
-
-
     with torch.no_grad():
-
-
-
-
 
         for iter, sample in enumerate(tqdm(test_loader)):
 
@@ -107,29 +97,88 @@ def compute_auc(model, dist='L2'):
             pred1s = np.sum(pred1s) / len(pred1s)
             pred2s = np.sum(pred2s) / len(pred2s)
 
-            # L1 distance
+            # pdb.set_trace()
             if dist == 'L1':
+                # L1 distance
                 pred = torch.sum(torch.abs(pred1s - pred2s), dim=1)
-
-            # L2 distance
-            if dist == 'L2':
+            elif dist == 'L2':
+                # L2 distance
                 pred = torch.sum((pred1s - pred2s) ** 2, dim=1)
+            elif dist == 'NormL2':
+                pred = torch.sum((F.normalize(pred1s, p=2, dim=1) - F.normalize(pred2s, p=2, dim=1)) ** 2, dim=1)
+            elif dist == 'cos':
+                pred = torch.cosine_similarity(pred1s, pred2s, dim=1)
+
+
 
             if iter == 0:
                 preds = pred
+                NormL2dist = torch.sum((F.normalize(pred1s, p=2, dim=1) - F.normalize(pred2s, p=2, dim=1)) ** 2, dim=1)
+                cos_sim = torch.cosine_similarity(pred1s, pred2s, dim=1)
                 labels = label
+                label1_all = labels1
+                label2_all = labels2
+                data_path = sample['data']
             else:
                 preds = torch.cat([preds, pred])
+                NormL2dist = torch.cat([NormL2dist, torch.sum((F.normalize(pred1s, p=2, dim=1) - F.normalize(pred2s, p=2, dim=1)) ** 2, dim=1)])
+                cos_sim = torch.cat([cos_sim, torch.cosine_similarity(pred1s, pred2s, dim=1)])
                 labels = torch.cat([labels, label])
-
+                label1_all += labels1
+                label2_all += labels2
+                data_path += sample['data']
             # pdb.set_trace()
 
     # print('min is', torch.min(preds))
     # print('mean is', torch.mean(preds))
 
+    # m_scores = []
+    # um_scores = []
+    #
+    # for i in range(len(data_path)):
+    #     path1, label1, path2, label2 = data_path[i].split(' ')
+    #     print(data_path[i], label1==label2, cos_sim[i].item())
+    #
+    #     if label1 == label2:
+    #         m_scores.append(cos_sim[i].item())
+    #     else:
+    #         um_scores.append(cos_sim[i].item())
+    #
+    pdb.set_trace()
+
+    # pairs = []
+    # for i in range(len(data_path)):
+    #     path1, label1, path2, label2 = data_path[i].split(' ')
+    #     if label1 == label2 and cos_sim[i] > 0.8:
+    #
+    #         for j in range(len(data_path)):
+    #             path11, label11, path21, label21 = data_path[j].split(' ')
+    #             if path11 == path1 and label21 == '43' and cos_sim[j] < 0.8:
+    #
+    #                 for p in range(len(data_path)):
+    #                     path111, label111, path211, label211 = data_path[j].split(' ')
+    #                     if path111 == path1 and label211 == '47' and cos_sim[p] < cos_sim[j]:
+    #                         pairs.append([data_path[i], data_path[j], data_path[p]])
+
+
+
+
+
+    # 42-42, 0.8542
+    # '/ssd0/qyc/dataset/Diving48/frames/42/xbQCwTHcGN8_00146 42 /ssd0/qyc/dataset/Diving48/frames/42/_tigfCJFLZg_00512 42 '
+
+    # 42-43 0.6232,
+    # '/ssd0/qyc/dataset/Diving48/frames/42/xbQCwTHcGN8_00146 42 /ssd0/qyc/dataset/Diving48/frames/43/6wVdnLa3Tes_00186 43'
+
+    # 42-47 0.2516
+    # '/ssd0/qyc/dataset/Diving48/frames/42/xbQCwTHcGN8_00146 42 /ssd0/qyc/dataset/Diving48/frames/47/xbQCwTHcGN8_00309 47'
+
+
 
     fpr, tpr, thresholds = roc_curve(labels.cpu().detach().numpy(), preds.cpu().detach().numpy(), pos_label=0)
     auc_value = auc(fpr, tpr)
+    wdr = compute_WDR(NormL2dist, label1_all, label2_all)
+
 
     # pdb.set_trace()
 
@@ -143,15 +192,113 @@ def compute_auc(model, dist='L2'):
             best_accuracy = accuracy
             best_threshold = threshold
 
-    logger.info('Best threshold is %.4f, best accuracy is %.4f' % (best_threshold, best_accuracy))
-
+    # logger.info('Best threshold is %.4f, best accuracy is %.4f, wdr is %.4f' % (best_threshold, best_accuracy, wdr))
+    print('Best threshold is ', best_threshold)
 
     # pdb.set_trace()
 
-    return auc_value
+    return auc_value, wdr
+
+
+def save_WDR(data, save_path):
+
+    # pdb.set_trace()
+
+
+    # 创建一个workbook 设置编码
+    workbook = xlwt.Workbook(encoding='utf-8')
+    # 创建一个worksheet
+    worksheet = workbook.add_sheet('test')
+
+    # 写入excel
+    # 参数对应 行, 列, 值
+    worksheet.write(0, 0, 'NormL2 dist')
+    worksheet.write(0, 1, 'Edit dist')
+
+    for i in range(len(data)):
+        n_dist, e_dist = data[i]
+        worksheet.write(i + 1, 0, n_dist)
+        worksheet.write(i + 1, 1, e_dist)
+
+    workbook.save(save_path)
+
+    pdb.set_trace()
+
+def compute_WDR(preds, label1, label2):
+    # compute weighted dist ratio
+    #        weighted dist / # unmatched pairs
+    # WDR = ---------------------------------
+    #             dist / # matched pairs
+
+    import json
+    def read_json(file_path):
+        with open(file_path, 'r') as f:
+            data = json.loads(f.read())
+        return data
+
+    # pdb.set_trace()
+    label_bank = read_json('/p300/dataset/COIN/splits/label_bank.json')
+    # label_bank = read_json('/p300/dataset/Diving48/splits/label_bank.json')
+    # label_bank = read_json('/p300/dataset/ActionVerification/splits/label_bank.json')
+
+
+    data = []
+
+    # Calcualte wdr
+    labels = torch.tensor(np.array(label1) == np.array(label2))
+    m_dists = preds[labels]
+    um_dists = []
+    for i in range(len(labels)):
+        label = labels[i]
+        if not label:
+            # unmatched pair
+            # NormL2 dist / edit distance
+            um_dists.append(preds[i] / compute_edit_dist(label_bank[label1[i]], label_bank[label2[i]]))
+            data.append([preds[i], compute_edit_dist(label_bank[label1[i]], label_bank[label2[i]])])
+
+
+    # Calcluate averaged NormL2 dist over edit distances
+    # pdb.set_trace()
+    # edit_dists = list(set([i[1] for i in data]))
+    # new_data = [[] for i in edit_dists]
+    # for i in range(len(edit_dists)):
+    #     new_data[i] = [j[0].item() for j in data if j[1] == edit_dists[i]]
+    #     print(len(new_data[i]))
+    #     new_data[i] = [np.mean(new_data[i]), edit_dists[i]]
+    #
+    # save_WDR(new_data, 'edit_dist0.xls')
+
+
+    return torch.tensor(um_dists).mean() / m_dists.mean()
 
 
 
+
+
+
+def compute_edit_dist(seq1, seq2):
+    """
+    计算字符串 seq1 和 seq1 的编辑距离
+    :param seq1
+    :param seq2
+    :return:
+    """
+
+
+    matrix = [[i + j for j in range(len(seq2) + 1)] for i in range(len(seq1) + 1)]
+
+    for i in range(1, len(seq1) + 1):
+        for j in range(1, len(seq2) + 1):
+            if (seq1[i - 1] == seq2[j - 1]):
+                d = 0
+            else:
+                d = 2
+
+            matrix[i][j] = min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + d)
+
+
+
+    return matrix[len(seq1)][len(seq2)]
 
 
 
@@ -179,6 +326,7 @@ def eval():
         model_path = args.model_path
 
     start_time = time.time()
+    # pdb.set_trace()
     if os.path.isdir(model_path):
         logger.info('To evaluate %d models in %s' % (len(os.listdir(model_path)) - args.start_epoch + 1, model_path))
 
@@ -204,21 +352,44 @@ def eval():
             # pdb.set_trace()
             checkpoint = torch.load(os.path.join(model_path, path))
             model.load_state_dict(checkpoint['model_state_dict'], strict=True)
-            auc_value = compute_auc(model)
-            logger.info("Model is %s, AUC is %.4f" % (os.path.join(model_path, path), auc_value))
+            auc_value, wdr = compute_auc(model, args.dist)
+            logger.info("Model is %s, AUC is %.4f, wdr is %.4f" % (os.path.join(model_path, path), auc_value, wdr))
 
             if auc_value > best_auc:
                 best_auc = auc_value
+                best_wdr = wdr
                 best_model_path = os.path.join(model_path, path)
 
-        logger.info("*** Best models is %s, Best AUC is %.4f ***" % (best_model_path, best_auc))
+        logger.info("*** Best models is %s, Best AUC is %.4f, Best wdr is %.4f ***" % (best_model_path, best_auc, best_wdr))
+        logger.info('----------------------------------------------------------------')
+        # Run again
+        for path in model_paths:
+
+            if int(path[6:-4]) < args.start_epoch:
+                continue
+
+            # pdb.set_trace()
+            checkpoint = torch.load(os.path.join(model_path, path))
+            model.load_state_dict(checkpoint['model_state_dict'], strict=True)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            auc_value, wdr = compute_auc(model, args.dist)
+            print("Model is %s, AUC is %.4f" % (os.path.join(model_path, path), auc_value))
 
     elif os.path.isfile(model_path):
         logger.info('To evaluate 1 models in %s' % (model_path))
         checkpoint = torch.load(model_path)
         model.load_state_dict(checkpoint['model_state_dict'], strict=True)
-        auc_value = compute_auc(model)
+        auc_value, wdr = compute_auc(model, args.dist)
         logger.info("Model is %s, AUC is %.4f" % (model_path, auc_value))
+
+        pdb.set_trace()
 
 
         # vis
@@ -249,12 +420,31 @@ def parse_args():
     parser.add_argument('--model_path', default=None, help='path to load one model [default: None]')
     parser.add_argument('--log_name', default='eval_log', help='log name')
     parser.add_argument('--start_epoch', default=1, type=int, help='index of the first evaluated epoch while evaluating epochs [default: 1]')
+    parser.add_argument('--dist', default='NormL2')
 
 
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
+
+    # import json
+    #
+    #
+    # def read_json(file_path):
+    #     with open(file_path, 'r') as f:
+    #         data = json.loads(f.read())
+    #     return data
+    #
+    #
+    # # pdb.set_trace()
+    # # label_bank = read_json('/p300/dataset/COIN/splits/label_bank.json')
+    # label_bank = read_json('/p300/dataset/Diving48/splits/label_bank.json')
+    # # label_bank = read_json('/p300/dataset/ActionVerification/splits/label_bank.json')
+    #
+    #
+    # pdb.set_trace()
+
     args = parse_args()
     cfg = get_cfg_defaults()
     if args.config:

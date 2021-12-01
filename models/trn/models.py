@@ -3,9 +3,8 @@ from torch import nn
 from models.resnet.resnet import *
 from ..tsn.basic_ops import ConsensusModule
 # from transforms import *
-import sys
-sys.path.append('/p300/code/ActionVerification/models/trn')
-import TRNmodule
+
+from models.trn import TRNmodule
 import pdb
 
 class TSN(nn.Module):

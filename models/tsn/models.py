@@ -6,7 +6,7 @@ from models.resnet.resnet import *
 import sys
 sys.path.append('/p300/code/ActionVerification/models/tsn')
 
-from basic_ops import ConsensusModule
+from models.tsn.basic_ops import ConsensusModule
 
 import pdb
 

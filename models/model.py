@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pdb
@@ -6,6 +7,7 @@ import logging
 
 from utils.builder import builder, TRUNCATE_DIM
 from models.trn.TRNmodule import return_TRN
+# from models.SAN.san import SAM
 
 logger = logging.getLogger('ActionVerification')
 
@@ -27,7 +29,8 @@ class CAT(nn.Module):
                  use_CosFace=False,
                  fix_ViT_projection=False,
                  partial_bn=False,
-                 freeze_backbone=False):
+                 freeze_backbone=False,
+                 pyramid=False):
         super(CAT, self).__init__()
         assert backbone_model, logger.info('CAT must have a backbone model, but get None')
 
@@ -42,6 +45,7 @@ class CAT(nn.Module):
         self.use_CosFace = use_CosFace
         self.enable_pbn = partial_bn
         self.freeze_backbone = freeze_backbone
+        self.pyramid = pyramid
 
         if base_model == None:
             self.base_model = backbone_model
@@ -63,26 +67,36 @@ class CAT(nn.Module):
 
         self.backbone = model_builder.build_backbone()
 
+        self.segments = [self.num_clip, int(self.num_clip / 2), int(self.num_clip / 4)] if pyramid else [self.num_clip]
+
         if self.backbone_model == 'swin':
             self.swin_head = self.backbone.cls_head
             self.backbone = self.backbone.backbone
 
         if use_SeqAlign:
+            # self.sa = SAM(1, 2048, 128, 512, 8, 3, 1)
             self.seq_features_extractor = model_builder.build_seq_features_extractor()
 
         if self.backbone_model == 'cat':
             if use_ViT:
                 # self.vit1, self.vit2 = model_builder.build_2vit()
+                self.bottleneck = nn.Conv2d(TRUNCATE_DIM[self.base_model], 128, 3, 1, 1)
                 self.vit = model_builder.build_vit()
                 self.embed_fc = nn.Linear(1024, dim_embedding)
             else:
                 self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
                 self.embed_fc = nn.Linear(TRUNCATE_DIM[self.base_model], dim_embedding)
+
             self.temporal_mix_conv = nn.Conv1d(num_clip, 1, 1)
+
+
+            self.out_dim = 1024 if use_ViT else TRUNCATE_DIM[self.base_model]
+            self.new_fc = nn.Linear(16 * self.out_dim, dim_embedding)
 
         self.dropout = nn.Dropout(dropout)
 
-        self.fc = nn.Linear(dim_embedding, num_class, bias=False) if use_CosFace else nn.Linear(dim_embedding, num_class)
+        # self.fc = nn.Linear(dim_embedding, num_class, bias=False) if use_CosFace else nn.Linear(dim_embedding, num_class)
+        self.fc = nn.Linear(7 * dim_embedding, num_class) if pyramid else nn.Linear(dim_embedding, num_class)
 
 
     def train(self, mode=True):
@@ -117,15 +131,13 @@ class CAT(nn.Module):
 
         # pdb.set_trace()
 
-        seq_features = None
-        # if self.use_SeqAlign:
-        #     seq_features = self.seq_features_extractor(x)
 
+
+        seq_features = None
         x = self.backbone(x)    # [bs * num_clip, 512, 6, 10]
         # return x
-        if self.use_SeqAlign:
-            # print('*** sa-vit ***')
-            seq_features = self.seq_features_extractor(x)
+        # if self.use_SeqAlign:
+        #     seq_features = self.seq_features_extractor(x)
         if self.backbone_model == 'swin':
             x = self.swin_head(x)
 
@@ -142,6 +154,7 @@ class CAT(nn.Module):
                     x = x.reshape(-1, self.num_clip, c)
                     x = self.vit(x, embedded=True)  # [bs, 1024]
                 else:
+                    x = self.bottleneck(x)
                     _, c, h, w = x.size()
                     # input for raw-vit
                     x = x.reshape(-1, self.num_clip, c, h, w).permute(0,2,3,1,4).reshape(-1, c, h, w * self.num_clip)     # [bs, dim, 6, t*10]
@@ -149,6 +162,10 @@ class CAT(nn.Module):
                     # x = x.reshape(-1, self.num_clip, c, h, w).permute(0, 2, 1, 3, 4).reshape(-1, c, h * self.num_clip, w)   # [bs, dim, 6*t, 10]
                     # print('*** vit ***')
                     x = self.vit(x)  # [bs, 16, 1024]
+
+                    if self.use_SeqAlign:
+                        seq_features = x
+
 
 
                 # Series ViT
@@ -162,13 +179,20 @@ class CAT(nn.Module):
                 if 'resnet' in self.base_model:
                     x = self.avgpool(x)     # [bs * num_clip, 512, 1, 1]
                     x = x.flatten(1)        # [bs * num_clip, 512]
-                x = x.reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])    # [bs, num_clip, dim_feature]
+                # x = x.reshape(-1, self.num_clip, TRUNCATE_DIM[self.base_model])    # [bs, num_clip, dim_feature]
 
 
             # x: [bs, num_clip, dim_feature]
-            x = self.temporal_mix_conv(x)
-            x = x.squeeze(1)
-            x = self.embed_fc(x)  # [bs, dim_embedding]
+            # x = self.temporal_mix_conv(x)
+            # x = x.squeeze(1)
+            # x = self.embed_fc(x)  # [bs, dim_embedding]
+
+            x = x.reshape(-1, self.num_clip * self.out_dim)
+            x = self.new_fc(x)
+
+
+
+
 
 
         # [bs, dim_embedding]

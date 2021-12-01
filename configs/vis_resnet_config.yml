@@ -1,25 +1,70 @@
 TRAIN:
-  BATCH_SIZE: 2
-  DROPOUT: 0
+  BATCH_SIZE: 16
+  DROPOUT: 0.0
+#  PREFETCH: True
 
 MODEL:
   BACKBONE: 'cat'
   BACKBONE_DIM: '2D'
   BASE_MODEL: 'resnet50'
+  DIM_EMBEDDING: 128
   TRANSFORMER: True
 #  ALIGNMENT: True
 
 DATASET:
-  MODE: 'test'
-#  TXT_PATH: '/p300/dataset/ActionVerification/test.txt'
-#  NUM_CLASS: 45
-  TXT_PATH: '/p300/dataset/COIN/test.txt'
-  NUM_CLASS: 180
+  MODE: 'val'
+
+#  Chemical dataset
+#  TXT_PATH: '/p300/dataset/ActionVerification/splits/vis_val_ssd.txt'
+  TXT_PATH: '/p300/dataset/ActionVerification/splits/vis_123_ssd.txt'
+#  TXT_PATH: '/p300/dataset/ActionVerification/splits/val_ssd.txt'
+#  TXT_PATH: '/p300/dataset/ActionVerification/splits/test_ssd.txt'
+  NUM_CLASS: 45
+
+
+#  COIN dataset; default split
+#  TXT_PATH: '/p300/dataset/COIN/splits/val.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/test.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/val_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/test_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/val_train_ssd.txt
+#  NUM_CLASS: 330
+
+
+#  COIN dataset; triplet split
+#  TXT_PATH: '/p300/dataset/COIN/splits/val_triplet.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/val_triplet_ssd.txt'
+#  NUM_CLASS: 1396
+
+
+#  COIN dataset; split1
+#  TXT_PATH: '/p300/dataset/COIN/splits/val1_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/test1_ssd.txt'
+#  NUM_CLASS: 72
+
+
+#  COIN dataset; split2
+#  TXT_PATH: '/p300/dataset/COIN/splits/vis_val_18_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/val2_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/val2_flow_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/test2_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/test2_flow_ssd.txt'
+#  NUM_CLASS: 37
+
+
+
+#  Diving48 dataset; splits
+#  TXT_PATH: '/p300/dataset/Diving48/splits/val1.txt'
+#  TXT_PATH: '/p300/dataset/Diving48/splits/val1_ssd.txt'
+#  TXT_PATH: '/p300/dataset/Diving48/splits/test1_ssd.txt'
+#  NUM_CLASS: 20
+
+
+
   NUM_CLIP: 16
   LEN_CLIP: 1
   AUGMENT: False
   SHUFFLE: True
   NUM_WORKERS: 0
-
 
 

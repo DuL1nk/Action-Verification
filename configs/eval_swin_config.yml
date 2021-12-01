@@ -1,11 +1,12 @@
 TRAIN:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 16
   DROPOUT: 0.0
+#  PREFETCH: True
 
 MODEL:
-  BACKBONE: 'tsn'
-  BACKBONE_DIM: '2D'
-  BASE_MODEL: 'resnet50'
+  BACKBONE: 'swin'
+  BACKBONE_DIM: '3D'
+  BASE_MODEL: 'swin'
   DIM_EMBEDDING: 128
 #  TRANSFORMER: True
 #  ALIGNMENT: True
@@ -16,8 +17,8 @@ DATASET:
 #  Chemical dataset
 #  TXT_PATH: '/p300/dataset/ActionVerification/splits/val_ssd.txt'
 #  TXT_PATH: '/p300/dataset/ActionVerification/splits/test_ssd.txt'
-  TXT_PATH: '/p300/dataset/ActionVerification/splits/test_new_ssd.txt'
-  NUM_CLASS: 45
+#  TXT_PATH: '/p300/dataset/ActionVerification/splits/test_new_ssd.txt'
+#  NUM_CLASS: 45
 
 
 #  COIN dataset; default split
@@ -42,16 +43,16 @@ DATASET:
 
 
 #  COIN dataset; split2
-#  TXT_PATH: '/p300/dataset/COIN/splits/val2_ssd.txt'
+  TXT_PATH: '/p300/dataset/COIN/splits/val2_ssd.txt'
 #  TXT_PATH: '/p300/dataset/COIN/splits/val2_flow_ssd.txt'
 #  TXT_PATH: '/p300/dataset/COIN/splits/test2_ssd.txt'
 #  TXT_PATH: '/p300/dataset/COIN/splits/test2_flow_ssd.txt'
-#  NUM_CLASS: 37
+  NUM_CLASS: 37
 
 
 
 #  Diving48 dataset; splits
-#  TXT_PATH: '/p300/dataset/Diving48/splits/val1.txt'
+#  TXT_PATH: '/p300/dataset/Diving48/splits/val.txt'
 #  TXT_PATH: '/p300/dataset/Diving48/splits/val1_ssd.txt'
 #  TXT_PATH: '/p300/dataset/Diving48/splits/test1_ssd.txt'
 #  NUM_CLASS: 20
@@ -63,6 +64,5 @@ DATASET:
   AUGMENT: False
   SHUFFLE: True
   NUM_WORKERS: 0
-
 
 

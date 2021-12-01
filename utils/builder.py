@@ -139,10 +139,11 @@ class builder:
             backbone = build_model(cfg.model)
 
             # pdb.set_trace()
-            state_dict = torch.load(self.pretrain)['state_dict']
-            # backbone.load_state_dict(state_dict)
-            backbone.load_state_dict({k: v for k, v in state_dict.items() if k in backbone.state_dict() and k[9:11] != 'fc'}, strict=False)
-            logger.info('Loading backbone state_dict from %s' % self.pretrain)
+            if self.pretrain:
+                state_dict = torch.load(self.pretrain)['state_dict']
+                # backbone.load_state_dict(state_dict)
+                backbone.load_state_dict({k: v for k, v in state_dict.items() if k in backbone.state_dict() and k[9:11] != 'fc'}, strict=False)
+                logger.info('Loading backbone state_dict from %s' % self.pretrain)
 
         else:
             logger.info('Not support models %s' % self.backbone_model)
@@ -164,7 +165,7 @@ class builder:
             heads=8,
             mlp_dim=2048,
             pool='all',
-            channels=TRUNCATE_DIM[self.base_model],
+            channels=128,
             dropout=self.dropout,
             emb_dropout=self.dropout,
             fix_embedding=self.fix_ViT_projection

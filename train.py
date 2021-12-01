@@ -25,6 +25,8 @@ from data.label import LABELS
 
 def train():
 
+    # pdb.set_trace()
+
     train_loader = load_dataset(cfg)
 
     model = CAT(num_class=cfg.DATASET.NUM_CLASS,
@@ -37,16 +39,13 @@ def train():
                 dropout=cfg.TRAIN.DROPOUT,
                 use_ViT=cfg.MODEL.TRANSFORMER,
                 use_SeqAlign=cfg.MODEL.ALIGNMENT,
-                use_CosFace=cfg.MODEL.COSFACE,
-                fix_ViT_projection=cfg.TRAIN.FIX_VIT_PROJECTION,
-                partial_bn=cfg.TRAIN.PARTIAL_BN,
-                freeze_backbone=cfg.TRAIN.FREEZE_BACKBONE).to(device)
+                use_CosFace=cfg.MODEL.COSFACE).to(device)
 
 
     # pdb.set_trace()
-    # for name, param in model.named_parameters():
-    #     print(name, param.nelement())
-
+    for name, param in model.named_parameters():
+        print(name, param.nelement())
+    # pdb.set_trace()
 
     logger.info("Model have {} paramerters in total".format(sum(x.numel() for x in model.parameters())))
     if cfg.TRAIN.USE_ADAMW:
@@ -55,10 +54,35 @@ def train():
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
         # optimizer = torch.optim.SGD(model.parameters(), lr=cfg.TRAIN.LR, weight_decay=0.01)
 
+    if cfg.TRAIN.USE_ISDA:
+
+        logger.info('Use ISDA loss!')
+
+        from utils.ISDA import ISDALoss
+
+        class Full_layer(torch.nn.Module):
+            '''explicitly define the full connected layer'''
+
+            def __init__(self, feature_num, class_num):
+                super(Full_layer, self).__init__()
+                self.class_num = class_num
+                self.fc = nn.Linear(feature_num, class_num)
+
+            def forward(self, x):
+                x = self.fc(x)
+                return x
+
+        fc = Full_layer(cfg.MODEL.DIM_EMBEDDING, cfg.DATASET.NUM_CLASS).cuda()
+
+        isda_criterion = ISDALoss(cfg.MODEL.DIM_EMBEDDING, cfg.DATASET.NUM_CLASS).cuda()
+        optimizer = torch.optim.Adam([{'params': model.parameters()}, {'params': fc.parameters()}], lr=cfg.TRAIN.LR, weight_decay=0.01)
+
+
+
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.DECAY_EPOCHS, gamma=cfg.TRAIN.DECAY_RATE)
     # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 45, 50], gamma=0.1)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.TRAIN.MAX_EPOCH, eta_min=cfg.TRAIN.LR*0.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=60, eta_min=cfg.TRAIN.LR*0.01)
 
 
     start_epoch = 0
@@ -79,25 +103,6 @@ def train():
     # pdb.set_trace()
     start_time = time.time()
     flag = False
-    if cfg.TRAIN.USE_ISDA:
-        from utils.ISDA import ISDALoss
-
-        class Full_layer(torch.nn.Module):
-            '''explicitly define the full connected layer'''
-
-            def __init__(self, feature_num, class_num):
-                super(Full_layer, self).__init__()
-                self.class_num = class_num
-                self.fc = nn.Linear(feature_num, class_num)
-
-            def forward(self, x):
-                x = self.fc(x)
-                return x
-
-        fc = Full_layer(cfg.MODEL.DIM_EMBEDDING, cfg.DATASET.NUM_CLASS).cuda()
-
-        isda_criterion = ISDALoss(cfg.MODEL.DIM_EMBEDDING, cfg.DATASET.NUM_CLASS).cuda()
-        optimizer = torch.optim.Adam([{'params': model.parameters()}, {'params': fc.parameters()}], lr=cfg.TRAIN.LR, weight_decay=0.01)
 
 
     # Start training
@@ -143,48 +148,40 @@ def train():
             # *** 1. Classification Training ***
             frames1 = frames_preprocess(sample['frames_list1'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
             frames2 = frames_preprocess(sample['frames_list2'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            labels1 = sample['label1']
-            labels2 = sample['label2']
+            labels1 = sample['label1'].to(device, non_blocking=True)
+            labels2 = sample['label2'].to(device, non_blocking=True)
 
-            labels_seq1 = torch.tensor([LABELS['COIN']['train'].index(temp) for temp in labels1]).to(device, non_blocking=True)
-            labels_seq2 = torch.tensor([LABELS['COIN']['train'].index(temp) for temp in labels2]).to(device, non_blocking=True)
-            labels_task1 = torch.tensor([int(temp.split('.')[0]) for temp in labels1]).to(device, non_blocking=True)
-            labels_task2 = torch.tensor([int(temp.split('.')[0]) for temp in labels2]).to(device, non_blocking=True)
-            # pdb.set_trace()
 
-            seq_cls1, task_cls1, seq_features1, embed_feature1 = model(frames1)
-            seq_cls2, task_cls2, seq_features2, embed_feature2 = model(frames2)
-
-            pred_labels1 = torch.argmax(seq_cls1, dim=-1)
-            pred_labels2 = torch.argmax(seq_cls2, dim=-1)
-            num_true_pred += torch.sum(pred_labels1 == labels_seq1) + torch.sum(pred_labels2 == labels_seq2)
+            pred1, seq_features1, embed_feature1 = model(frames1)
+            pred2, seq_features2, embed_feature2 = model(frames2)
 
 
             # Compute loss
             if cfg.TRAIN.USE_ISDA:
                 ratio = 1 * ((epoch + 1) / cfg.TRAIN.MAX_EPOCH)
-                seq_cls1, isda_seq_cls1 = isda_criterion(embed_feature1, fc, frames1, labels_seq1, ratio)
-                seq_cls2, isda_seq_cls2 = isda_criterion(embed_feature2, fc, frames2, labels_seq2, ratio)
-                loss_cls_seq = compute_cls_loss(isda_seq_cls1, labels_seq1, cfg.MODEL.COSFACE) + \
-                               compute_cls_loss(isda_seq_cls2, labels_seq2, cfg.MODEL.COSFACE)
-                pdb.set_trace()
+                pred1, isda_pred1 = isda_criterion(embed_feature1, fc, frames1, labels1, ratio)
+                pred2, isda_pred2 = isda_criterion(embed_feature2, fc, frames2, labels2, ratio)
+                loss_cls = compute_cls_loss(isda_pred1, labels1, cfg.MODEL.COSFACE) + compute_cls_loss(isda_pred2, labels2, cfg.MODEL.COSFACE)
             else:
-                loss_cls_seq = compute_cls_loss(seq_cls1, labels_seq1, cfg.MODEL.COSFACE) + compute_cls_loss(seq_cls2, labels_seq2, cfg.MODEL.COSFACE)
-            loss_cls_task = compute_cls_loss(task_cls1, labels_task1, cfg.MODEL.COSFACE) + compute_cls_loss(task_cls2, labels_task2, cfg.MODEL.COSFACE)
+                loss_cls = compute_cls_loss(pred1, labels1, cfg.MODEL.COSFACE) + compute_cls_loss(pred2, labels2, cfg.MODEL.COSFACE)
             loss_seq = compute_seq_loss(seq_features1, seq_features2)
 
-            loss = loss_cls_seq + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
-            # loss = loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
+            # loss = loss_cls + loss_cls_task + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
+            loss = loss_cls + cfg.MODEL.SEQ_LOSS_COEF * loss_seq
 
+            pred_labels1 = torch.argmax(pred1, dim=-1)
+            pred_labels2 = torch.argmax(pred2, dim=-1)
+            num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2)
+            num_sample = 2
             if (iter + 1) % 10 == 0:
                 logger.info( 'Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                   .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item()))
 
 
             # *** 2. Triplet Training ***
-            # frames1 = frames_preprocess(sample['frames_list1'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            # frames2 = frames_preprocess(sample['frames_list2'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
-            # frames3 = frames_preprocess(sample['frames_list3'], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            # frames1 = frames_preprocess(sample['frames_list1'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            # frames2 = frames_preprocess(sample['frames_list2'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
+            # frames3 = frames_preprocess(sample['frames_list3'][0], cfg.MODEL.BACKBONE_DIM, cfg.MODEL.BACKBONE).to(device, non_blocking=True)
             # labels1 = sample['label1'].to(device, non_blocking=True)
             # labels2 = sample['label2'].to(device, non_blocking=True)
             # labels3 = sample['label2'].to(device, non_blocking=True)
@@ -201,7 +198,7 @@ def train():
             # pred_labels2 = torch.argmax(pred2, dim=-1)
             # pred_labels3 = torch.argmax(pred3, dim=-1)
             # num_true_pred += torch.sum(pred_labels1 == labels1) + torch.sum(pred_labels2 == labels2) + torch.sum(pred_labels3 == labels3)
-            #
+            # num_sample = 3
             #
             #
             # dist_m = torch.sum((embed_feature1 - embed_feature2) ** 2, dim=1)
@@ -227,6 +224,10 @@ def train():
             #       .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, iter + 1, len(train_loader), loss.item(), loss_triplet, loss_cls, dist_m.mean(), dist_um.mean()))
 
 
+
+
+
+
             loss_per_epoch += loss.item()
 
 
@@ -249,7 +250,7 @@ def train():
         loss_cls_per_epoch /= (iter + 1)
         dist_ms /= (iter + 1)
         dist_ums /= (iter + 1)
-        accuracy = num_true_pred / (cfg.DATASET.NUM_SAMPLE * 2)
+        accuracy = num_true_pred / (cfg.DATASET.NUM_SAMPLE * num_sample)
         logger.info('Epoch [{}/{}], LR: {:.6f}, Accuracy: {:.4f}, Loss: {:.4f}'
                     .format(epoch + 1, cfg.TRAIN.MAX_EPOCH, optimizer.param_groups[0]['lr'], accuracy, loss_per_epoch))
 
@@ -270,7 +271,7 @@ def train():
             # Save model every 10 epochs
             if not os.path.exists(checkpoint_dir):
                 os.makedirs(checkpoint_dir)
-            if (epoch + 1) % cfg.MODEL.SAVE_EPOCHS == 0:
+            if (epoch + 1) % cfg.MODEL.SAVE_EPOCHS == 0 and (epoch + 1) <= 60:
                 save_name = 'epoch_' + str(epoch+1) + '.tar'
                 torch.save(save_dict, os.path.join(checkpoint_dir, save_name))
                 logger.info('Save ' + os.path.join(checkpoint_dir, save_name) + ' done!')
@@ -298,6 +299,7 @@ def parse_args():
     parser.add_argument('--save_path', default=None, help='path to save models and log [default: None]')
     parser.add_argument('--load_path', default=None, help='path to load the model [default: None]')
     parser.add_argument('--log_name', default='train_log', help='log name')
+    parser.add_argument('--pyramid', default=False, type=bool, help='whether to use temporal pyramid framework')
 
 
     args = parser.parse_args()

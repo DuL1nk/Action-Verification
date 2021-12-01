@@ -45,6 +45,7 @@ _C.MODEL.SAVE_EPOCHS = 1        # Save model per 5 epochs
 
 # Dataset configuration
 _C.DATASET = CN()
+_C.DATASET.NAME = 'COIN'
 _C.DATASET.TXT_PATH = '/p300/dataset/ActionVerification/train.txt'
 _C.DATASET.NUM_WORKERS = 4
 _C.DATASET.MODALITY = 'RGB'

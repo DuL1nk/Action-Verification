@@ -1,19 +1,19 @@
 TRAIN:
   USE_CUDA: True
-  MAX_EPOCH: 100
-  DECAY_EPOCHS: 40
+  MAX_EPOCH: 200
+  DECAY_EPOCHS: 30
   DECAY_RATE: 0.1
   BATCH_SIZE: 16
   LR: 0.0001
-  DROPOUT: 0
+  DROPOUT: 0.0
   PARTIAL_BN: False
 #  GRAD_MAX_NORM: 1
 #  USE_ADAMW: True
 #  FIX_VIT_PROJECTION: True
 #  SAVE_PATH: 'logs/test'
-#  SAVE_PATH: 'logs/tsm-res_img-pre_lr0.001'
-  SAVE_PATH: 'coin_logs/tsm-res_img_lr0.0001'
-
+#  SAVE_PATH: 'cv_logs/tsm-res-kin_lr0.0001'
+  SAVE_PATH: 'coin_logs/tsm-res-kin_lr0.0001_s2'
+#  SAVE_PATH: 'diving_logs/tsm-res-kin_lr0.0001'
 
 MODEL:
   BACKBONE: 'tsm'
@@ -21,7 +21,8 @@ MODEL:
 #  BASE_MODEL: 'BNInception'
 #  PRETRAIN: 'imagenet'
   BASE_MODEL: 'resnet50'
-  PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
+  PRETRAIN: 'pretrained_models/resnet50-kinetics400.pth'
+#  PRETRAIN: 'pretrained_models/resnet50-ImageNet.pth'
   DIM_EMBEDDING: 128
 #  TRANSFORMER: True
 #  ALIGNMENT: True
@@ -30,14 +31,33 @@ MODEL:
 
 DATASET:
   MODE: 'train'
-#  TXT_PATH: '/p300/dataset/ActionVerification/train_all.txt'
+#  TXT_PATH: '/p300/dataset/ActionVerification/splits/train_all.txt'
 #  NUM_CLASS: 45
-#  NUM_SAMPLE: 800
-  TXT_PATH: '/p300/dataset/COIN/train_all.txt'
-  NUM_CLASS: 442
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all.txt'
+#  NUM_CLASS: 330
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all1.txt'
+#  NUM_CLASS: 72
+
+  TXT_PATH: '/p300/dataset/COIN/splits/train_all2.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_all2_ssd.txt'
+#  TXT_PATH: '/p300/dataset/COIN/splits/train2_flow.txt'
+  NUM_CLASS: 37
+
+#  TXT_PATH: '/p300/dataset/COIN/splits/train_triplet.txt'
+#  NUM_CLASS: 1396
+
+#  TXT_PATH: '/p300/dataset/Diving48/splits/train_all1.txt'
+#  NUM_CLASS: 20
+
+
+
   NUM_SAMPLE: 1600
   NUM_CLIP: 16
   LEN_CLIP: 1
+  SHUFFLE: True
+  NUM_WORKERS: 4
 
 
 

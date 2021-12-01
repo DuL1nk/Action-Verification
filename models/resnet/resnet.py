@@ -194,6 +194,9 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+
+        # pdb.set_trace()
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -206,6 +209,7 @@ class ResNet(nn.Module):
 
         if self.truncate:
             return x
+
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
